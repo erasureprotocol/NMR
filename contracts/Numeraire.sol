@@ -269,7 +269,7 @@ contract Numeraire is Stoppable, Sharable {
 
     address public numerai = this;
 
-    // Cap the total supply at 21 million and the weekly supply at 50 thousand
+    // Cap the total supply at and the weekly supply
     uint256 public supply_cap = 21000000000000000000000000;
     uint256 public disbursement_cap = 96153846153846153846153;
 
