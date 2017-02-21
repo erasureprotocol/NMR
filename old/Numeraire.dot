@@ -1,0 +1,28 @@
+strict digraph {
+  Numeraire
+  setManager
+  mint
+  Mint
+  releaseStake
+  destroyStake
+  stake
+  Stake
+  transfer
+  Transfer
+  approve
+  Approval
+  transferFrom
+  totalSupply [color=blue]
+  balanceOf [color=blue]
+  allowance [color=blue]
+  stakeOf [color=blue]
+  safeToAdd [color=gray]
+  safeToSubtract [color=gray]
+  null
+  mint -> Mint
+  stake -> Stake
+  transfer -> Transfer
+  approve -> Approval
+  transferFrom -> Transfer
+}
+
