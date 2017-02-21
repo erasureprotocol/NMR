@@ -1,3 +1,8 @@
+<<<<<<< HEAD
+!!! This repository is outdated.  Make changes to the [public one](https://github.com/numerai/contract) !!!
+
+# Numerai Ethereum contracts
+=======
 # Numeraire Ethereum Smart Contract
 
 Authors: Alex Mingoia (@alexmingoia) and Joey Krug (@joeykrug)

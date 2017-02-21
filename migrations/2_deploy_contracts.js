@@ -1,4 +1,5 @@
+var Numeraire = artifacts.require("./contracts/Numeraire.sol");
+var addresses = [10,5];
 module.exports = function(deployer) {
-  deployer.autolink();
-  deployer.deploy(Numeraire, 150000000000000, 0);
+  deployer.deploy(Numeraire, addresses, 2, 1500000000000000000000000);
 };

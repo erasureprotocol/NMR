@@ -1,3 +1,5 @@
+pragma solidity ^0.4.8;
+
 contract NumeraiRegister {
     address backendContract;
     address[] previousBackends;
@@ -11,7 +13,7 @@ contract NumeraiRegister {
         if (msg.sender != owner) {
             throw;
         }
-        _
+        _;
     }
 
     function changeBackend(address newBackend) public

@@ -30,6 +30,6 @@
     "concurrently": "^3.1.0",
     "ethereumjs-testrpc": "^3.0.3",
     "solium": "^0.2.2",
-    "truffle": "^3.1.1"
+    "truffle": "^3.1.9"
   }
 }
