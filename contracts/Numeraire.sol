@@ -307,7 +307,6 @@ contract Numeraire is Stoppable, Sharable {
     // If we want to mint 500 to a user, the value we use here is 500, then 500 are given to that user and 500 are given to Numerai, so if you want to mint the cap you'll need to use cap / 2 as the value or 25k [because an additional 25k go to Numerai itself]
     function mint(address _to, uint256 _value) onlymanyowners(sha3(msg.data)) returns (bool ok) {
         // Recipient cannot be Numerai.
-        throw;
         if (isOwner(_to) || _to == numerai) throw;
 
         // Prevent overflows.
