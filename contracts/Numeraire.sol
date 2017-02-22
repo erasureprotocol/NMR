@@ -344,6 +344,9 @@ contract Numeraire is Stoppable, Sharable {
     // _to is the address of the user whose stake we're releasing
     function releaseStake(address _to, uint256 timestamp) onlymanyowners(sha3(msg.data)) returns (bool ok) {
         var stake = staked[_to][timestamp];
+        if(stake == 0) {
+          throw;
+        }
 
         if (!safeToSubtract(staked[_to][timestamp], stake)) throw;
         if (!safeToAdd(balance_of[_to], stake)) throw;
@@ -357,6 +360,11 @@ contract Numeraire is Stoppable, Sharable {
     // Destroy staked tokens if the user's predictions were not successful.
     // _to is the address of the user whose stake we're destroying
     function destroyStake(address _to, uint256 timestamp) onlymanyowners(sha3(msg.data)) returns (bool ok) {
+        var stake = staked[_to][timestamp];
+        if(stake == 0) {
+          throw;
+        }
+
         // Reduce the total supply by the staked amount and destroy the stake.
         if (!safeToSubtract(total_supply, staked[_to][timestamp])) throw;
 
