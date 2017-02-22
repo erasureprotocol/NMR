@@ -38,6 +38,7 @@ var gasAmount = 3000000;
 var gasPrice = 20000000000;
 
 var Numeraire = artifacts.require("./Numeraire.sol");
+var Registry = artifacts.require("./Registry.sol");
 
 contract('Numeraire', function(accounts) {
     before(function() {
@@ -181,9 +182,13 @@ contract('Numeraire', function(accounts) {
 
     it('should release stake', function(done) {
         var nmr = Numeraire.deployed().then(function(instance) {
-            return instance.stake(accounts[1], 500, {from: accounts[0]}).then(function(tx_id) {
+            return instance.stake(accounts[1], 500, {
+                from: accounts[0]
+            }).then(function(tx_id) {
                 var block = web3.eth.getBlock(tx_id.receipt.blockNumber);
-                return instance.releaseStake.call(accounts[1], block.timestamp, {from: accounts[0]}).then(function(result) {
+                return instance.releaseStake.call(accounts[1], block.timestamp, {
+                    from: accounts[0]
+                }).then(function(result) {
                     assert.equal(result, true);
                     done();
                 });
@@ -193,10 +198,29 @@ contract('Numeraire', function(accounts) {
 
     it('should destroy stake', function(done) {
         var nmr = Numeraire.deployed().then(function(instance) {
-            return instance.stake(accounts[1], 500, {from: accounts[0]}).then(function(tx_id) {
+            return instance.stake(accounts[1], 500, {
+                from: accounts[0]
+            }).then(function(tx_id) {
                 var block = web3.eth.getBlock(tx_id.receipt.blockNumber);
-                return instance.destroyStake.call(accounts[1], block.timestamp, {from: accounts[0]}).then(function(result) {
+                return instance.destroyStake.call(accounts[1], block.timestamp, {
+                    from: accounts[0]
+                }).then(function(result) {
                     assert.equal(result, true);
+                    done();
+                });
+            });
+        });
+    });
+});
+
+contract('Registry', function(accounts) {
+    it('should set address', function(done) {
+        var reg = Registry.deployed().then(function(instance) {
+            return instance.changeBackend(Numeraire.address, {
+                from: accounts[0]
+            }).then(function(result) {
+                return instance.backendContract.call().then(function(result) {
+                    assert.equal(result, Numeraire.address);
                     done();
                 });
             });

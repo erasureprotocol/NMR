@@ -1,11 +1,11 @@
 pragma solidity ^0.4.8;
 
-contract NumeraiRegister {
-    address backendContract;
-    address[] previousBackends;
-    address owner;
+contract Registry {
+    address public backendContract;
+    address[] public previousBackends;
+    address public owner;
 
-    function SomeRegister() {
+    function Registry() {
         owner = msg.sender;
     }
 
