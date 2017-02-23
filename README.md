@@ -6,7 +6,7 @@ Authors: Alex Mingoia (@alexmingoia) and Joey Krug (@joeykrug)
 
 ### Install
 - Clone this repository:
-  `git clone git@github.com:numerai/contracts.git && cd contracts`
+  `git clone git@github.com:numerai/contract.git && cd contract`
 - Install node dependencies: `npm install`
 
 ### Lint
