@@ -162,7 +162,46 @@ contract('Numeraire', function(accounts) {
         });
     });
 
-    // read
+    it("should send NMR correctly from numerai account", function(done) {
+        var nmr = Numeraire.deployed().then(function(instance) {
+            // Get initial balances of first and second account.
+            var account_one = Numeraire.address;
+            var account_two = accounts[2];
+
+            var account_one_starting_balance;
+            var account_two_starting_balance;
+            var account_one_ending_balance;
+            var account_two_ending_balance;
+
+            var amount = 1000000000;
+
+            return instance.mint(accounts[1], amount, {
+                from: accounts[0]
+            }).then(function() {
+                return instance.balanceOf.call(account_one).then(function(balance) {
+                    account_one_starting_balance = balance.toNumber();
+                    return instance.balanceOf.call(account_two);
+                }).then(function(balance) {
+                    account_two_starting_balance = balance.toNumber();
+                    return instance.numeraiTransfer(account_two, amount, {
+                        from: accounts[0]
+                    });
+                }).then(function() {
+                    return instance.balanceOf.call(account_one);
+                }).then(function(balance) {
+                    account_one_ending_balance = balance.toNumber();
+                    return instance.balanceOf.call(account_two);
+                }).then(function(balance) {
+                    account_two_ending_balance = balance.toNumber();
+
+                    assert.equal(account_one_ending_balance, account_one_starting_balance - amount, "Amount wasn't correctly taken from the sender");
+                    assert.equal(account_two_ending_balance, account_two_starting_balance + amount, "Amount wasn't correctly sent to the receiver");
+                    done();
+                });
+            });
+        });
+    });
+
     it('should stake NMR', (done) => {
         var nmr = Numeraire.deployed().then(function(instance) {
             return instance.balanceOf.call(accounts[0])
