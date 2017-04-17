@@ -1,4 +1,4 @@
-pragma solidity ^0.4.10;
+pragma solidity ^0.4.8;
 
 import "contracts/StoppableShareable.sol";
 import "contracts/DestructibleShareable.sol";

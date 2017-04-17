@@ -1,4 +1,4 @@
-pragma solidity ^0.4.10;
+pragma solidity ^0.4.8;
 
 
 // Class variables used both in NumeraireBackend and NumeraireDelegate
