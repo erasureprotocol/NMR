@@ -38,29 +38,21 @@ contract Numeraire is Stoppable, Sharable {
         Sharable(_owners, _num_required) {
         total_supply = 0;
 
-        // The first disbursement period begins at contract initialization,
-        // and may be larger than the weekly disbursement cap.
+        // The first disbursement period begins at contract initialization and may be larger than the weekly disbursement cap.
         if (!safeToAdd(block.timestamp, disbursement_period)) throw;
         disbursement_end_time = block.timestamp + disbursement_period;
         disbursement = _initial_disbursement;
     }
 
-    // Mint
-    // Can mint multiple times per week, just can't mint more than the cap in a week, then next week the cap restarts
-    // If we want to mint 500 to a user, the value we use here is 500, then 500 are given to that user and 500 are given to Numerai, so if you want to mint the cap you'll need to use cap / 2 as the value or 25k [because an additional 25k go to Numerai itself]
-    function mint(address _to, uint256 _value) onlymanyowners(sha3(msg.data)) returns (bool ok) {
-        // Recipient cannot be Numerai.
-        if (isOwner(_to) || _to == numerai) throw;
-
+    // All minted NMR are initially sent to Numerai, obeying both weekly and total supply caps
+    function mint(uint256 _value) onlymanyowners(sha3(msg.data)) returns (bool ok) {
         // Prevent overflows.
-        if (!safeToAdd(balance_of[_to], _value)) throw;
+        if (!safeToSubtract(disbursement, _value)) throw;
         if (!safeToAdd(balance_of[numerai], _value)) throw;
-        if (!safeToMultiply(_value, 2)) throw;
-        if (!safeToAdd(total_supply, _value*2)) throw;
-        if (!safeToSubtract(disbursement, _value*2)) throw;
+        if (!safeToAdd(total_supply, _value)) throw;
 
         // Prevent minting more than the supply cap.
-        if ((total_supply + (_value * 2)) > supply_cap) throw;
+        if ((total_supply + _value) > supply_cap) throw;
 
         // Replenish disbursement a maximum of once per week.
         if (block.timestamp > disbursement_end_time) {
@@ -69,22 +61,19 @@ contract Numeraire is Stoppable, Sharable {
         }
 
         // Prevent minting more than the disbursement.
-        if ((_value * 2) > disbursement) throw;
+        if (_value > disbursement) throw;
 
-        // Numerai receives an amount equal to winner's amount.
-        disbursement -= _value * 2;
-        balance_of[_to] += _value;
+        disbursement -= _value;
         balance_of[numerai] += _value;
-        total_supply += _value * 2;
+        total_supply += _value;
 
         // Notify anyone listening.
-        Mint(_to, _value);
+        Mint(_value);
 
         return true;
     }
 
-    // Release staked tokens if the user's predictions were successful.
-    // _to is the address of the user whose stake we're releasing
+    // Release staked tokens if the user's predictions were successful. _to is the address of the user whose stake we're releasing
     function releaseStake(address _to, uint256 timestamp) onlymanyowners(sha3(msg.data)) returns (bool ok) {
         var stake = staked[_to][timestamp];
         if(stake == 0) {
@@ -100,8 +89,7 @@ contract Numeraire is Stoppable, Sharable {
         return true;
     }
 
-    // Destroy staked tokens if the user's predictions were not successful.
-    // _to is the address of the user whose stake we're destroying
+    // Destroy staked tokens if the user's predictions were not successful. _to is the address of the user whose stake we're destroying
     function destroyStake(address _to, uint256 timestamp) onlymanyowners(sha3(msg.data)) returns (bool ok) {
         var stake = staked[_to][timestamp];
         if(stake == 0) {
