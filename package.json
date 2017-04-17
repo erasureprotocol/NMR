@@ -8,17 +8,16 @@
   },
   "scripts": {
     "console": "node ./node_modules/truffle/cli.js console",
-    "test-server": "testrpc -p 6545",
     "compile": "rm -rf ./build; node ./node_modules/truffle/cli.js compile",
     "inspect": "node --inspect --debug-brk ./node_modules/truffle/cli.js test",
-    "test": "npm run lint && node ./node_modules/truffle/cli.js test test/numeraire.js"
+    "test": "node ./node_modules/truffle/cli.js test test/numeraire.js"
   },
   "repository": {
     "type": "git",
     "url": "git://github.com/numerai/contracts.git"
   },
-  "author": "Alexander C. Mingoia <alex@numer.ai>",
-  "license": "UNLICENSED",
+  "author": "Numerai",
+  "license": "All Rights Reserved",
   "bugs": {
     "url": "https://github.com/numerai/contracts/issues"
   },
