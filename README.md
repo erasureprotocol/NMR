@@ -24,7 +24,7 @@ We want to be able to upgrade the contract so that:
 
 ### Install
 - Clone this repository: `git clone git@github.com:numerai/contract.git && cd contract`
-- Install node dependencies: `npm install`
+- Install dependencies: `npm install`
 
 ### Lint
 - `brew install -g solium` to install solium, the Solidity linter
@@ -37,5 +37,5 @@ We want to be able to upgrade the contract so that:
 - `solc --gas contracts/FILE` to estimate gas usage
 
 ### Test
-- Start the test server: `npm run test-server`
-- Run tests: `npm test`
+- `testrpc -p 6545` to start the test server
+- `truffle test` to run the tests

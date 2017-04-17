@@ -9,8 +9,7 @@
   "scripts": {
     "console": "node ./node_modules/truffle/cli.js console",
     "compile": "rm -rf ./build; node ./node_modules/truffle/cli.js compile",
-    "inspect": "node --inspect --debug-brk ./node_modules/truffle/cli.js test",
-    "test": "node ./node_modules/truffle/cli.js test test/numeraire.js"
+    "inspect": "node --inspect --debug-brk ./node_modules/truffle/cli.js test"
   },
   "repository": {
     "type": "git",
