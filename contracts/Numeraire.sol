@@ -1,10 +1,10 @@
 pragma solidity ^0.4.10;
 
-import "Stoppable.sol";
+import "StoppableShareable.sol";
 import "DestructibleShareable.sol";
 
 // Whoever creates the contract has the power to stop it, this person can be changed via transferOwnership(_new_address)
-contract Numeraire is Stoppable, DestructibleShareable {
+contract Numeraire is StoppableShareable, DestructibleShareable {
 
     string public standard = "ERC20";
     string public name = "Numeraire";
@@ -35,7 +35,7 @@ contract Numeraire is Stoppable, DestructibleShareable {
 
     // Initialization
     // Msg.sender is first owner
-    function Numeraire(address[] _owners, uint256 _num_required, uint256 _initial_disbursement) Stoppable(_owners, _num_required) DestructibleShareable(_owners, _num_required) {
+    function Numeraire(address[] _owners, uint256 _num_required, uint256 _initial_disbursement) StoppableShareable(_owners, _num_required) DestructibleShareable(_owners, _num_required) {
         total_supply = 0;
 
         // The first disbursement period begins at contract initialization and can be larger than the weekly disbursement cap.
