@@ -50,8 +50,10 @@ contract Shareable {
 
   // MODIFIERS
 
+  address thisContract = this;
+
   modifier onlyThis {
-    if (msg.sender == this)
+    if (msg.sender == thisContract)
       _;
   }
 

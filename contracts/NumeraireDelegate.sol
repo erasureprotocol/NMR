@@ -116,9 +116,7 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe {
     }
 
     // Transfer NMR from Numerai account using multisig
-    function numeraiTransfer(address _to, uint256 _value) returns(bool ok) {
-        if (msg.senger != this) throw;
-
+    function numeraiTransfer(address _to, uint256 _value) onlyThis returns(bool ok) {
         // Check for sufficient funds.
         if (balance_of[numerai] < _value) throw;
 
