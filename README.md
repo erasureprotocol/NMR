@@ -7,7 +7,7 @@ Authors: Alex Mingoia (@alexmingoia), Joey Krug (@joeykrug), and Xander Dunn (@x
 ## Overview
 - Should require multi-sig for some functions
 - Should be able to single-sig pause the contract and multi-sig unpause the contract
-- All state-changing functions should be disable in the paused state unless it requires multi-sig
+- All state-changing functions should be disabled in the paused state unless it requires multi-sig
 - Only Numerai can make stakes, release stakes, destroy stakes, and mint
 - Numerai's store of NMR is a "cold wallet": Transfers from it can occur only with multi-sig
 - All NMR initially minted is sent to Numerai
