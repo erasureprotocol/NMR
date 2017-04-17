@@ -2,7 +2,7 @@ pragma solidity ^0.4.10;
 
 // A simple contract created for each Numerai user who wants to deposit NMR to Numerai so that it can be staked in the competition
 
-import "Destructible.sol";
+import "contracts/Destructible.sol";
 
 contract Deposit is Destructible {
 

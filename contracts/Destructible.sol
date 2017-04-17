@@ -1,7 +1,7 @@
 pragma solidity ^0.4.10;
 
 
-import "Ownable.sol";
+import "contracts/Ownable.sol";
 
 
 // From OpenZepplin: https://github.com/OpenZeppelin/zeppelin-solidity/blob/master/contracts/lifecycle/Destructible.sol

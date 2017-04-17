@@ -2,9 +2,9 @@ pragma solidity ^0.4.10;
 
 // This is the contract that will be unchangeable once deployed.  It will call delegate functions in another contract to change state.  The delegate contract is upgradable.
 
-import "StoppableShareable.sol";
-import "Safe.sol";
-import "NumeraireShared.sol";
+import "contracts/StoppableShareable.sol";
+import "contracts/Safe.sol";
+import "contracts/NumeraireShared.sol";
 
 contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
 

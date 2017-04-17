@@ -1,6 +1,6 @@
 pragma solidity ^0.4.10;
 
-import "Shareable.sol";
+import "contracts/Shareable.sol";
 
 // From OpenZepplin: https://github.com/OpenZeppelin/zeppelin-solidity/blob/master/contracts/lifecycle/Pausable.sol
 /*

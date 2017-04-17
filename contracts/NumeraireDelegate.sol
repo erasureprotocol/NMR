@@ -1,8 +1,8 @@
 pragma solidity ^0.4.10;
 
-import "StoppableShareable.sol";
-import "DestructibleShareable.sol";
-import "Safe.sol";
+import "contracts/StoppableShareable.sol";
+import "contracts/DestructibleShareable.sol";
+import "contracts/Safe.sol";
 
 // Whoever creates the contract has the power to stop it, this person can be changed via transferOwnership(_new_address)
 contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe {
