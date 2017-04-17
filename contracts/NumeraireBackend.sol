@@ -45,23 +45,23 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
         return false;
     }
 
-    function mint(uint256 _value) onlyOwner stopInEmergency returns (bool ok) {
+    function mint(uint256 _value) stopInEmergency returns (bool ok) {
         return backendContract.delegatecall(bytes4(sha3("mint(uint256)")), _value);
     }
 
-    function stake(address stake_owner, bytes32 _submissionID, uint256 _value) onlyOwner stopInEmergency returns (bool ok) {
+    function stake(address stake_owner, bytes32 _submissionID, uint256 _value) stopInEmergency returns (bool ok) {
         return backendContract.delegatecall(bytes4(sha3("stake(address, bytes32, uint256)")), stake_owner, _submissionID, _value);
     }
 
-    function releaseStake(bytes32 _submissionID) onlyOwner stopInEmergency returns (bool ok) {
+    function releaseStake(bytes32 _submissionID) stopInEmergency returns (bool ok) {
         return backendContract.delegatecall(bytes4(sha3("releaseStake(bytes32)")), _submissionID);
     }
 
-    function destroyStake(bytes32 _submissionID) onlyOwner stopInEmergency returns (bool ok) {
+    function destroyStake(bytes32 _submissionID) stopInEmergency returns (bool ok) {
         return backendContract.delegatecall(bytes4(sha3("destroyStake(bytes32)")), _submissionID);
     }
 
-    function numeraiTransfer(address _to, uint256 _value) onlyManyOwners(sha3(msg.data)) returns(bool ok) {
+    function numeraiTransfer(address _to, uint256 _value) returns(bool ok) {
         return backendContract.delegatecall(bytes4(sha3("numeraiTransfer(address, uint256)")), _to, _value);
     }
 

@@ -50,6 +50,11 @@ contract Shareable {
 
   // MODIFIERS
 
+  modifier onlyThis {
+    if (msg.sender == this)
+      _;
+  }
+
   // simple single-sig function modifier.
   modifier onlyOwner {
     if (isOwner(msg.sender))

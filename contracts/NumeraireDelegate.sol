@@ -33,7 +33,7 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe {
     }
 
     // All minted NMR are initially sent to Numerai, obeying both weekly and total supply caps
-    function mint(uint256 _value) onlyOwner stopInEmergency returns (bool ok) {
+    function mint(uint256 _value) onlyThis stopInEmergency returns (bool ok) {
         // Prevent overflows.
         if (!safeToSubtract(disbursement, _value)) throw;
         if (!safeToAdd(balance_of[numerai], _value)) throw;
@@ -62,7 +62,7 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe {
     }
 
     // Release staked tokens if the predictions were successful
-    function releaseStake(bytes32 _submissionID) onlyOwner stopInEmergency returns (bool ok) {
+    function releaseStake(bytes32 _submissionID) onlyThis stopInEmergency returns (bool ok) {
         var stake = staked[_submissionID];
         if (stake == 0) {
           throw;
@@ -78,7 +78,7 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe {
     }
 
     // Destroy staked tokens if the predictions were not successful
-    function destroyStake(bytes32 _submissionID) onlyOwner stopInEmergency returns (bool ok) {
+    function destroyStake(bytes32 _submissionID) onlyThis stopInEmergency returns (bool ok) {
         var stake = staked[_submissionID];
         if(stake == 0) {
           throw;
@@ -94,7 +94,7 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe {
     }
 
     // Only Numerai can stake NMR, stake_owner will always be Numeari's hot wallet
-    function stake(address stake_owner, bytes32 _submissionID, uint256 _value) onlyOwner stopInEmergency returns (bool ok) {
+    function stake(address stake_owner, bytes32 _submissionID, uint256 _value) onlyThis stopInEmergency returns (bool ok) {
         // Numerai cannot stake on itself
         if (isOwner(stake_owner) || stake_owner == numerai) throw;
 
@@ -116,7 +116,9 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe {
     }
 
     // Transfer NMR from Numerai account using multisig
-    function numeraiTransfer(address _to, uint256 _value) onlyManyOwners(sha3(msg.data)) returns(bool ok) {
+    function numeraiTransfer(address _to, uint256 _value) returns(bool ok) {
+        if (msg.senger != this) throw;
+
         // Check for sufficient funds.
         if (balance_of[numerai] < _value) throw;
 
