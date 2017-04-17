@@ -1,6 +1,6 @@
 pragma solidity ^0.4.10;
 
-import "Numeraire_dependencies.sol";
+import "Stoppable.sol";
 
 // Whoever creates the contract has the power to stop it, this person can be changed via transferOwnership(_new_address)
 contract Numeraire is Stoppable {
