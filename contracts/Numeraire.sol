@@ -34,8 +34,7 @@ contract Numeraire is Stoppable {
 
     // Initialization
     // Msg.sender is first owner
-    function Numeraire(address[] _owners, uint256 _num_required, uint256 _initial_disbursement)
-        Stoppable(_owners, _num_required) {
+    function Numeraire(address[] _owners, uint256 _num_required, uint256 _initial_disbursement) Stoppable(_owners, _num_required) {
         total_supply = 0;
 
         // The first disbursement period begins at contract initialization and may be larger than the weekly disbursement cap.
