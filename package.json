@@ -7,7 +7,6 @@
     "test": "test"
   },
   "scripts": {
-    "lint": "node ./node_modules/solium/bin/solium.js --file contracts/Numeraire.sol",
     "console": "node ./node_modules/truffle/cli.js console",
     "test-server": "testrpc -p 6545",
     "compile": "rm -rf ./build; node ./node_modules/truffle/cli.js compile",
@@ -29,7 +28,6 @@
     "babel-preset-stage-2": "^6.18.0",
     "concurrently": "^3.1.0",
     "ethereumjs-testrpc": "^3.0.3",
-    "solium": "^0.2.2",
     "truffle": "^3.1.9"
   }
 }
