@@ -27,7 +27,7 @@ contract Numeraire is Stoppable, Sharable {
     mapping (address => mapping (uint256 => uint256)) public staked;
 
     // Generates a public event on the blockchain to notify clients
-    event Mint(address indexed recipient, uint256 value);
+    event Mint(uint256 value);
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
     event Stake(address indexed owner, uint256 indexed timestamp, uint256 value);
@@ -45,7 +45,7 @@ contract Numeraire is Stoppable, Sharable {
     }
 
     // All minted NMR are initially sent to Numerai, obeying both weekly and total supply caps
-    function mint(uint256 _value) onlymanyowners(sha3(msg.data)) returns (bool ok) {
+    function mint(uint256 _value) onlyOwner returns (bool ok) {
         // Prevent overflows.
         if (!safeToSubtract(disbursement, _value)) throw;
         if (!safeToAdd(balance_of[numerai], _value)) throw;
@@ -74,7 +74,7 @@ contract Numeraire is Stoppable, Sharable {
     }
 
     // Release staked tokens if the user's predictions were successful. _to is the address of the user whose stake we're releasing
-    function releaseStake(address _to, uint256 timestamp) onlymanyowners(sha3(msg.data)) returns (bool ok) {
+    function releaseStake(address _to, uint256 timestamp) onlyOwner returns (bool ok) {
         var stake = staked[_to][timestamp];
         if(stake == 0) {
           throw;
@@ -90,7 +90,7 @@ contract Numeraire is Stoppable, Sharable {
     }
 
     // Destroy staked tokens if the user's predictions were not successful. _to is the address of the user whose stake we're destroying
-    function destroyStake(address _to, uint256 timestamp) onlymanyowners(sha3(msg.data)) returns (bool ok) {
+    function destroyStake(address _to, uint256 timestamp) onlyOwner returns (bool ok) {
         var stake = staked[_to][timestamp];
         if(stake == 0) {
           throw;
@@ -106,7 +106,7 @@ contract Numeraire is Stoppable, Sharable {
     }
 
     // Stake NMR
-    function stake(address stake_owner, uint256 _value) onlymanyowners(sha3(msg.data)) returns (bool ok) {
+    function stake(address stake_owner, uint256 _value) onlyOwner returns (bool ok) {
         // Numerai cannot stake on itself
         if (isOwner(stake_owner) || stake_owner == numerai) throw;
 
