@@ -4,6 +4,17 @@ Numerai is an [ERC20](https://github.com/ethereum/EIPs/issues/20) token used for
 
 Authors: Alex Mingoia (@alexmingoia), Joey Krug (@joeykrug), and Xander Dunn (@xanderdunn)
 
+## Overview
+- Should require multi-sig for some functions
+- Should be able to single-sig pause the contract and multi-sig unpause the contract
+- All state-changing functions should be disable in the paused state unless it requires multi-sig
+- Only Numerai can make stakes, release stakes, destroy stakes, and mint
+- Numerai's store of NMR is a "cold wallet": Transfers from it can occur only with multi-sig
+- A deposit contract should be cheaply created for each person on Numerai's website who wants to send NMR to Numerai in an identifiable way
+- All NMR initially minted is sent to Numerai
+- The contract should be upgradable so that the maps of balances, allowances, and stakes remain unchanged but the functions called for staking, releasing stakes, minting, and destroying stakes are changed.
+- It should be possible to disable upgradability forever
+
 ## Development
 
 ### Install
