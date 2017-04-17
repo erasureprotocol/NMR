@@ -31,10 +31,7 @@ We want to be able to upgrade the contract so that:
 - `solium --file contracts/FILE`
 
 ### Compile
-- `brew tap ethereum/ethereum`
-- `brew install solidity` to install solc, the Solidity compiler
-- `solc --file contracts/FILE`
-- `solc --gas contracts/FILE` to estimate gas usage
+- `truffle compile`
 
 ### Test
 - `testrpc -p 6545` to start the test server
