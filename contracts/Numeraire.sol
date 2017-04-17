@@ -24,13 +24,13 @@ contract Numeraire is Stoppable, Sharable {
 
     mapping (address => uint256) public balance_of;
     mapping (address => mapping (address => uint256)) public allowance_of;
-    mapping (address => mapping (uint256 => uint256)) public staked;
+    mapping (bytes32 => uint256) public staked; // A map of submissionIDs to NMR values
 
     // Generates a public event on the blockchain to notify clients
     event Mint(uint256 value);
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
-    event Stake(address indexed owner, uint256 indexed timestamp, uint256 value);
+    event Stake(bytes32 indexed submissionID, uint256 value);
 
     // Initialization
     // Msg.sender is first owner
@@ -73,40 +73,40 @@ contract Numeraire is Stoppable, Sharable {
         return true;
     }
 
-    // Release staked tokens if the user's predictions were successful. _to is the address of the user whose stake we're releasing
-    function releaseStake(address _to, uint256 timestamp) onlyOwner returns (bool ok) {
-        var stake = staked[_to][timestamp];
-        if(stake == 0) {
+    // Release staked tokens if the predictions were successful
+    function releaseStake(bytes32 _submissionID) onlyOwner returns (bool ok) {
+        var stake = staked[_submissionID];
+        if (stake == 0) {
           throw;
         }
 
-        if (!safeToSubtract(staked[_to][timestamp], stake)) throw;
-        if (!safeToAdd(balance_of[_to], stake)) throw;
+        if (!safeToSubtract(staked[_submissionID], stake)) throw;
+        if (!safeToAdd(balance_of[numerai], stake)) throw;
 
-        staked[_to][timestamp] -= stake;
-        balance_of[_to] += stake;
+        staked[_submissionID] -= stake;
+        balance_of[numerai] += stake;
 
         return true;
     }
 
-    // Destroy staked tokens if the user's predictions were not successful. _to is the address of the user whose stake we're destroying
-    function destroyStake(address _to, uint256 timestamp) onlyOwner returns (bool ok) {
-        var stake = staked[_to][timestamp];
+    // Destroy staked tokens if the predictions were not successful
+    function destroyStake(bytes32 _submissionID) onlyOwner returns (bool ok) {
+        var stake = staked[_submissionID];
         if(stake == 0) {
           throw;
         }
 
         // Reduce the total supply by the staked amount and destroy the stake.
-        if (!safeToSubtract(total_supply, staked[_to][timestamp])) throw;
+        if (!safeToSubtract(total_supply, staked[_submissionID])) throw;
 
-        total_supply -= staked[_to][timestamp];
-        staked[_to][timestamp] = 0;
+        total_supply -= staked[_submissionID];
+        staked[_submissionID] = 0;
 
         return true;
     }
 
-    // Stake NMR
-    function stake(address stake_owner, uint256 _value) onlyOwner returns (bool ok) {
+    // Only Numerai can stake NMR, stake_owner will always be Numeari's hot wallet
+    function stake(address stake_owner, bytes32 _submissionID, uint256 _value) onlyOwner returns (bool ok) {
         // Numerai cannot stake on itself
         if (isOwner(stake_owner) || stake_owner == numerai) throw;
 
@@ -114,20 +114,20 @@ contract Numeraire is Stoppable, Sharable {
         if (balance_of[stake_owner] < _value) throw;
 
         // Prevent overflows.
-        if (staked[stake_owner][block.timestamp] + _value < staked[stake_owner][block.timestamp]) throw;
-        if (!safeToAdd(staked[stake_owner][block.timestamp], _value)) throw;
+        if (staked[_submissionID] + _value < staked[_submissionID]) throw;
+        if (!safeToAdd(staked[_submissionID], _value)) throw;
         if (!safeToSubtract(balance_of[stake_owner], _value)) throw;
 
         balance_of[stake_owner] -= _value;
-        staked[stake_owner][block.timestamp] += _value;
+        staked[_submissionID] += _value;
 
         // Notify anyone listening.
-        Stake(stake_owner, block.timestamp, _value);
+        Stake(_submissionID, _value);
 
         return true;
     }
 
-    // Send
+    // Anyone with NMR can transfer NMR
     function transfer(address _to, uint256 _value) stopInEmergency returns (bool ok) {
         // Check for sufficient funds.
         if (balance_of[msg.sender] < _value) throw;
@@ -146,7 +146,7 @@ contract Numeraire is Stoppable, Sharable {
         return true;
     }
 
-    // for transferring nmr from numerai account using multisig
+    // Transfer NMR from Numerai account using multisig
     function numeraiTransfer(address _to, uint256 _value) onlymanyowners(sha3(msg.data)) returns(bool ok) {
         // Check for sufficient funds.
         if (balance_of[numerai] < _value) throw;
@@ -207,9 +207,9 @@ contract Numeraire is Stoppable, Sharable {
         return allowance_of[_owner][_spender];
     }
 
-    // Lookup stake using the owner's address and time of the stake.
-    function stakeOf(address _owner, uint256 _timestamp) constant returns (uint256 _staked) {
-        return staked[_owner][_timestamp];
+    // Lookup stake
+    function stakeOf(bytes32 _submissionID) constant returns (uint256 _staked) {
+        return staked[_submissionID];
     }
 
     // Check if it is safe to add two numbers
