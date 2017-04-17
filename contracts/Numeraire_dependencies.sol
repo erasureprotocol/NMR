@@ -1,50 +1,5 @@
 pragma solidity ^0.4.10;
 
-/*
- * Ownable
- *
- * Base contract with an owner.
- * Provides onlyOwner modifier, which prevents function from running if it is called by anyone other than the owner.
- */
-contract Ownable {
-  address public owner;
-
-  function Ownable() {
-    owner = msg.sender;
-  }
-
-  modifier onlyOwner() {
-    if (msg.sender == owner)
-      _;
-  }
-
-  function transferOwnership(address newOwner) onlyOwner {
-    if (newOwner != address(0)) owner = newOwner;
-  }
-
-}
-/*
- * Stoppable
- * Abstract contract that allows children to implement an
- * emergency stop mechanism.
- */
-contract Stoppable is Ownable {
-  bool public stopped;
-
-  modifier stopInEmergency { if (!stopped) _; }
-  modifier onlyInEmergency { if (stopped) _; }
-
-  // called by the owner on emergency, triggers stopped state
-  function emergencyStop() external onlyOwner {
-    stopped = true;
-  }
-
-  // called by the owner on end of emergency, returns to normal state
-  function release() external onlyOwner onlyInEmergency {
-    stopped = false;
-  }
-
-}
 
 /*
  * Sharable
@@ -103,7 +58,7 @@ contract Sharable {
   // multi-sig function modifier: the operation must have an intrinsic hash in order
   // that later attempts can be realised as the same underlying operation and
   // thus count as confirmations.
-  modifier onlymanyowners(bytes32 _operation) {
+  modifier onlyManyOwners(bytes32 _operation) {
     if (confirmAndCheck(_operation))
       _;
   }
@@ -127,7 +82,7 @@ contract Sharable {
   // new multisig is given number of sigs required to do protected "onlymanyowners" transactions
   // as well as the selection of addresses capable of confirming them.
   // take all new owners as an array
-  function changeSharable(address[] _owners, uint _required) onlymanyowners(sha3(msg.data)) {
+  function changeSharable(address[] _owners, uint _required) onlyManyOwners(sha3(msg.data)) {
     for (uint i = 0; i < _owners.length; ++i) {
       owners[1 + i] = uint(_owners[i]);
       ownerIndex[uint(_owners[i])] = 1 + i;
@@ -218,5 +173,29 @@ contract Sharable {
       delete pendings[pendingsIndex[i]];
     delete pendingsIndex;
   }
+}
 
+/*
+ * Stoppable
+ * Abstract contract that allows children to implement an
+ * emergency stop mechanism.
+ */
+contract Stoppable is Sharable {
+  bool public stopped;
+
+  modifier stopInEmergency { if (!stopped) _; }
+  modifier onlyInEmergency { if (stopped) _; }
+
+  function Stoppable(address[] _owners, uint _required) Sharable(_owners, _required) {
+  }
+
+  // called by the owner on emergency, triggers stopped state
+  function emergencyStop() external onlyOwner {
+    stopped = true;
+  }
+
+  // called by the owner on end of emergency, returns to normal state
+  function release() external onlyManyOwners(sha3(msg.data)) onlyInEmergency {
+    stopped = false;
+  }
 }

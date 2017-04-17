@@ -3,7 +3,7 @@ pragma solidity ^0.4.10;
 import "Numeraire_dependencies.sol";
 
 // Whoever creates the contract has the power to stop it, this person can be changed via transferOwnership(_new_address)
-contract Numeraire is Stoppable, Sharable {
+contract Numeraire is Stoppable {
 
     string public standard = "ERC20";
     string public name = "Numeraire";
@@ -35,7 +35,7 @@ contract Numeraire is Stoppable, Sharable {
     // Initialization
     // Msg.sender is first owner
     function Numeraire(address[] _owners, uint256 _num_required, uint256 _initial_disbursement)
-        Sharable(_owners, _num_required) {
+        Stoppable(_owners, _num_required) {
         total_supply = 0;
 
         // The first disbursement period begins at contract initialization and may be larger than the weekly disbursement cap.
@@ -45,7 +45,7 @@ contract Numeraire is Stoppable, Sharable {
     }
 
     // All minted NMR are initially sent to Numerai, obeying both weekly and total supply caps
-    function mint(uint256 _value) onlyOwner returns (bool ok) {
+    function mint(uint256 _value) onlyOwner stopInEmergency returns (bool ok) {
         // Prevent overflows.
         if (!safeToSubtract(disbursement, _value)) throw;
         if (!safeToAdd(balance_of[numerai], _value)) throw;
@@ -74,7 +74,7 @@ contract Numeraire is Stoppable, Sharable {
     }
 
     // Release staked tokens if the predictions were successful
-    function releaseStake(bytes32 _submissionID) onlyOwner returns (bool ok) {
+    function releaseStake(bytes32 _submissionID) onlyOwner stopInEmergency returns (bool ok) {
         var stake = staked[_submissionID];
         if (stake == 0) {
           throw;
@@ -90,7 +90,7 @@ contract Numeraire is Stoppable, Sharable {
     }
 
     // Destroy staked tokens if the predictions were not successful
-    function destroyStake(bytes32 _submissionID) onlyOwner returns (bool ok) {
+    function destroyStake(bytes32 _submissionID) onlyOwner stopInEmergency returns (bool ok) {
         var stake = staked[_submissionID];
         if(stake == 0) {
           throw;
@@ -106,7 +106,7 @@ contract Numeraire is Stoppable, Sharable {
     }
 
     // Only Numerai can stake NMR, stake_owner will always be Numeari's hot wallet
-    function stake(address stake_owner, bytes32 _submissionID, uint256 _value) onlyOwner returns (bool ok) {
+    function stake(address stake_owner, bytes32 _submissionID, uint256 _value) onlyOwner stopInEmergency returns (bool ok) {
         // Numerai cannot stake on itself
         if (isOwner(stake_owner) || stake_owner == numerai) throw;
 
@@ -147,7 +147,7 @@ contract Numeraire is Stoppable, Sharable {
     }
 
     // Transfer NMR from Numerai account using multisig
-    function numeraiTransfer(address _to, uint256 _value) onlymanyowners(sha3(msg.data)) returns(bool ok) {
+    function numeraiTransfer(address _to, uint256 _value) onlyManyOwners(sha3(msg.data)) returns(bool ok) {
         // Check for sufficient funds.
         if (balance_of[numerai] < _value) throw;
 
