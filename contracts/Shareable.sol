@@ -69,7 +69,7 @@ contract Shareable {
 
   // constructor is given number of sigs required to do protected "onlymanyowners" transactions
   // as well as the selection of addresses capable of confirming them.
-  function Sharable(address[] _owners, uint _required) {
+  function Shareable(address[] _owners, uint _required) {
     owners[1] = uint(msg.sender);
     ownerIndex[uint(msg.sender)] = 1;
     for (uint i = 0; i < _owners.length; ++i) {

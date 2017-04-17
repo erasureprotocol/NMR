@@ -8,13 +8,13 @@ import "Shareable.sol";
  * Abstract contract that allows children to implement an
  * emergency stop mechanism.
  */
-contract Stoppable is Sharable {
+contract Stoppable is Shareable {
   bool public stopped;
 
   modifier stopInEmergency { if (!stopped) _; }
   modifier onlyInEmergency { if (stopped) _; }
 
-  function Stoppable(address[] _owners, uint _required) Sharable(_owners, _required) {
+  function Stoppable(address[] _owners, uint _required) Shareable(_owners, _required) {
   }
 
   // called by the owner on emergency, triggers stopped state
