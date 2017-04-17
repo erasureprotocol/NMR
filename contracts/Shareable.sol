@@ -1,8 +1,9 @@
 pragma solidity ^0.4.10;
 
 
+// From OpenZepplin: https://github.com/OpenZeppelin/zeppelin-solidity/blob/master/contracts/ownership/Shareable.sol
 /*
- * Sharable
+ * Shareable
  * 
  * Effectively our multisig contract
  *
@@ -13,7 +14,7 @@ pragma solidity ^0.4.10;
  * usage:
  * use modifiers onlyowner (just own owned) or onlymanyowners(hash), whereby the same hash must be provided by some number (specified in constructor) of the set of owners (specified in the constructor) before the interior is executed.
  */
-contract Sharable {
+contract Shareable {
   // TYPES
 
   // struct for the status of a pending operation.

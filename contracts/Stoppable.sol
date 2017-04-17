@@ -1,7 +1,8 @@
 pragma solidity ^0.4.10;
 
-import "Sharable.sol";
+import "Shareable.sol";
 
+// From OpenZepplin: https://github.com/OpenZeppelin/zeppelin-solidity/blob/master/contracts/lifecycle/Pausable.sol
 /*
  * Stoppable
  * Abstract contract that allows children to implement an
