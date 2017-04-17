@@ -1,5 +1,8 @@
 pragma solidity ^0.4.2;
 
+
+// Used by truffle for contract deployment
+
 contract Migrations {
   address public owner;
   uint public last_completed_migration;
