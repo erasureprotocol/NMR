@@ -37,7 +37,7 @@ contract Numeraire is Stoppable {
     function Numeraire(address[] _owners, uint256 _num_required, uint256 _initial_disbursement) Stoppable(_owners, _num_required) {
         total_supply = 0;
 
-        // The first disbursement period begins at contract initialization and may be larger than the weekly disbursement cap.
+        // The first disbursement period begins at contract initialization and can be larger than the weekly disbursement cap.
         if (!safeToAdd(block.timestamp, disbursement_period)) throw;
         disbursement_end_time = block.timestamp + disbursement_period;
         disbursement = _initial_disbursement;
