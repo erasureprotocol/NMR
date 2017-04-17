@@ -1,4 +1,5 @@
-pragma solidity ^0.4.8;
+pragma solidity ^0.4.10;
+
 
 contract Registry {
     address public backendContract;
@@ -20,7 +21,7 @@ contract Registry {
     onlyOwner()
     returns (bool)
     {
-        if(newBackend != backendContract) {
+        if (newBackend != backendContract) {
             previousBackends.push(backendContract);
             backendContract = newBackend;
             return true;
