@@ -8,16 +8,16 @@ import "contracts/NumeraireShared.sol";
 
 contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
 
-    address public backendContract;
+    address public delegateContract;
     bool upgradable = true;
-    address[] public previousBackends;
+    address[] public previousDelegates;
 
     string public standard = "ERC20";
     string public name = "Numeraire";
     string public symbol = "NMR";
     uint256 public decimals = 18;
 
-    address public numerai = this;
+    event DelegateChanged(address oldAddress, address newAddress);
 
     function NumeraireBackend(address[] _owners, uint256 _num_required, uint256 _initial_disbursement) StoppableShareable(_owners, _num_required) {
         total_supply = 0;
@@ -33,12 +33,13 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
         upgradable = false;
     }
 
-    function changeBackend(address newBackend) onlyOwner() returns (bool) {
+    function changeDelegate(address newDelegate) onlyManyOwners(sha3(msg.data)) returns (bool) {
         if (!upgradable) throw;
 
-        if (newBackend != backendContract) {
-            previousBackends.push(backendContract);
-            backendContract = newBackend;
+        if (newDelegate != delegateContract) {
+            previousDelegates.push(delegateContract);
+            delegateContract = newDelegate;
+            DelegateChanged(delegateContract, newDelegate);
             return true;
         }
 
@@ -46,23 +47,23 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
     }
 
     function mint(uint256 _value) stopInEmergency returns (bool ok) {
-        return backendContract.delegatecall(bytes4(sha3("mint(uint256)")), _value);
+        return delegateContract.delegatecall(bytes4(sha3("mint(uint256)")), _value);
     }
 
     function stake(address stake_owner, bytes32 _submissionID, uint256 _value) stopInEmergency returns (bool ok) {
-        return backendContract.delegatecall(bytes4(sha3("stake(address, bytes32, uint256)")), stake_owner, _submissionID, _value);
+        return delegateContract.delegatecall(bytes4(sha3("stake(address,bytes32,uint256)")), stake_owner, _submissionID, _value);
     }
 
     function releaseStake(bytes32 _submissionID) stopInEmergency returns (bool ok) {
-        return backendContract.delegatecall(bytes4(sha3("releaseStake(bytes32)")), _submissionID);
+        return delegateContract.delegatecall(bytes4(sha3("releaseStake(bytes32)")), _submissionID);
     }
 
     function destroyStake(bytes32 _submissionID) stopInEmergency returns (bool ok) {
-        return backendContract.delegatecall(bytes4(sha3("destroyStake(bytes32)")), _submissionID);
+        return delegateContract.delegatecall(bytes4(sha3("destroyStake(bytes32)")), _submissionID);
     }
 
     function numeraiTransfer(address _to, uint256 _value) returns(bool ok) {
-        return backendContract.delegatecall(bytes4(sha3("numeraiTransfer(address, uint256)")), _to, _value);
+        return delegateContract.delegatecall(bytes4(sha3("numeraiTransfer(address,uint256)")), _to, _value);
     }
 
     // ERC20: Send from a contract

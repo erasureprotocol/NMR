@@ -4,6 +4,9 @@ pragma solidity ^0.4.8;
 // Class variables used both in NumeraireBackend and NumeraireDelegate
 
 contract NumeraireShared {
+
+    address public numerai = this;
+
     // Cap the total supply and the weekly supply
     uint256 public supply_cap = 21000000000000000000000000; // 21 million
     uint256 public disbursement_cap = 96153846153846153846153;
