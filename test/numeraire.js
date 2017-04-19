@@ -229,6 +229,24 @@ contract('Numeraire', function(accounts) {
         });
     });
 
+    it('should release stake', function(done) {
+        var submissionID = '0x2953a031a0e3f018886fbf6b1eaa044f9e2980476e207ea50087b0a3e32d7a30'
+        var numerai_hot_wallet = accounts[1]
+        var nmr = Numeraire.deployed().then(function(instance) {
+            return instance.stake(numerai_hot_wallet, submissionID, 500, {
+                from: accounts[0]
+            }).then(function(tx_id) {
+                var block = web3.eth.getBlock(tx_id.receipt.blockNumber);
+                return instance.releaseStake.call(submissionID, {
+                    from: accounts[0]
+                }).then(function(result) {
+                    assert.equal(result, true);
+                    done();
+                });
+            });
+        });
+    });
+
 });
 
 // TODO: Calling mint, stake, transferNumerai, resolveStake, destroyStake from any address but the NumeraireBackend fails
