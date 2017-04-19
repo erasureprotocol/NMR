@@ -255,15 +255,21 @@ contract('Numeraire', function(accounts) {
         var numerai_hot_wallet = accounts[1]
         var stakeBeforeRelease = 0;
         var amount = 500
+        var originalNumeraiBalance = 0;
         var nmr = Numeraire.deployed().then(function(instance) {
             instance.stake(numerai_hot_wallet, submissionID, amount, {
                 from: accounts[0]
             }).then(function() {
-                // TODO: Check that balanceOf(numerai) receives it
+                instance.balanceOf.call(instance.address).then(function(numeraiBalance) {
+                    originalNumeraiBalance = numeraiBalance.toNumber()
+                })
                 instance.staked.call(submissionID).then(function(stakeAmount) {
                     stakeBeforeRelease = stakeAmount.toNumber()
                 })
                 return instance.releaseStake(submissionID, {from: accounts[0]}).then(function() {
+                    instance.balanceOf.call(instance.address).then(function(numeraiBalance) {
+                        assert.equal(originalNumeraiBalance + amount, numeraiBalance.toNumber())
+                    })
                     instance.staked.call(submissionID).then(function(stakeAfterRelease) {
                         assert.equal(stakeBeforeRelease - amount, stakeAfterRelease.toNumber())
                         done();
@@ -275,5 +281,6 @@ contract('Numeraire', function(accounts) {
 
 });
 
+// TODO: Test multi-sig
 // TODO: Calling mint, stake, transferNumerai, resolveStake, destroyStake from any address but the NumeraireBackend fails
 // TODO: Calling mint, stake, transferNumerai, resolveStake, destroyStake from NumeraireBackend succeeds
