@@ -234,21 +234,35 @@ contract('Numeraire', function(accounts) {
         });
     });
 
-    // TODO: Test that the total supply was decreased
     it('should destroy stake', function(done) {
         var submissionID = '0x2953a031a0e3f018886fbf6b1eaa044f9e2980476e207ea50087b0a3e32d7a30'
         var numerai_hot_wallet = accounts[1]
+        var originalTotalSupply = 0;
+        var amount = 500
+        var originalStakeAmount = 0;
         var nmr = Numeraire.deployed().then(function(instance) {
-            instance.stake(numerai_hot_wallet, submissionID, 500, {from: accounts[0]}).then(function() {
-                instance.destroyStake(submissionID, {from: accounts[0]}).then(function() {
-                    instance.staked.call(submissionID).then(function(stake) {
-                        assert.equal(stake.toNumber(), 0)
-                        done()
-                    });
+            instance.stakeOf.call(submissionID).then(function(stake) {
+                originalStakeAmount = stake.toNumber()
+            }).then(function() {
+                instance.stake(numerai_hot_wallet, submissionID, amount, {from: accounts[0]}).then(function() {
+                    instance.totalSupply.call().then(function(totalSupply) {
+                        originalTotalSupply = totalSupply.toNumber()
+                    }).then(function() {
+                        instance.destroyStake(submissionID, {from: accounts[0]}).then(function() {
+                            instance.totalSupply.call().then(function(newSupply) {
+                                assert.equal(originalTotalSupply - amount - originalStakeAmount, newSupply.toNumber())
+                            }).then(function() {
+                                instance.staked.call(submissionID).then(function(stake) {
+                                    assert.equal(stake.toNumber(), 0)
+                                    done()
+                                })
+                            })
+                        })
+                    })
                 })
-            });
-        });
-    });
+            })
+        })
+    })
 
     it('should release stake', function(done) {
         var submissionID = '0x2953a031a0e3f018886fbf6b1eaa044f9e2980476e207ea50087b0a3e32d7a30'
