@@ -66,6 +66,11 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
         return delegateContract.delegatecall(bytes4(sha3("numeraiTransfer(address,uint256)")), _to, _value);
     }
 
+    // Lookup stake
+    function stakeOf(bytes32 _submissionID) constant returns (uint256 _staked) {
+        return staked[_submissionID];
+    }
+
     // ERC20: Send from a contract
     function transferFrom(address _from, address _to, uint256 _value) stopInEmergency returns (bool ok) {
         // Check for sufficient funds.

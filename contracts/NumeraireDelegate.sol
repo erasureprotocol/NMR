@@ -112,8 +112,4 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
         return true;
     }
 
-    // Lookup stake
-    function stakeOf(bytes32 _submissionID) constant returns (uint256 _staked) {
-        return staked[_submissionID];
-    }
 }

@@ -171,17 +171,22 @@ contract('Numeraire', function(accounts) {
     it('should stake NMR', (done) => {
         var submissionID = '0x2953a031a0e3f018886fbf6b1eaa044f9e2980476e207ea50087b0a3e32d7a30'
         numerai_hot_wallet = accounts[2]
+        var amount = 500
         var nmr = Numeraire.deployed().then(function(instance) {
             return instance.balanceOf.call(numerai_hot_wallet)
                 .then(() => instance.balanceOf.call(numerai_hot_wallet).then((balance) => {
-                    return instance.stake(numerai_hot_wallet, submissionID, 500, {
+                    return instance.stake(numerai_hot_wallet, submissionID, amount, {
                         from: accounts[0]
                     }).then(() => {
-                        // TODO: Add stakeOf
-                        // TODO: Add instance.staked.call
+                        instance.stakeOf.call(submissionID).then(function(stakedAmount) {
+                            assert.equal(stakedAmount, amount)
+                        })
                         // check if stakers balance has been reduced
-                        return instance.balanceOf.call(numerai_hot_wallet).then((balance_after) => {
-                            assert.equal(balance.toNumber() - 500, balance_after.toNumber());
+                        instance.staked.call(submissionID).then(function(stakedAmount) {
+                            assert.equal(stakedAmount, amount)
+                        })
+                        instance.balanceOf.call(numerai_hot_wallet).then((balance_after) => {
+                            assert.equal(balance.toNumber() - amount, balance_after.toNumber());
                             done();
                         });
                     });
@@ -229,19 +234,40 @@ contract('Numeraire', function(accounts) {
         });
     });
 
-    it('should release stake', function(done) {
+    // TODO: Test that the total supply was decreased
+    it('should destroy stake', function(done) {
         var submissionID = '0x2953a031a0e3f018886fbf6b1eaa044f9e2980476e207ea50087b0a3e32d7a30'
         var numerai_hot_wallet = accounts[1]
         var nmr = Numeraire.deployed().then(function(instance) {
-            return instance.stake(numerai_hot_wallet, submissionID, 500, {
+            instance.stake(numerai_hot_wallet, submissionID, 500, {from: accounts[0]}).then(function() {
+                instance.destroyStake(submissionID, {from: accounts[0]}).then(function() {
+                    instance.staked.call(submissionID).then(function(stake) {
+                        assert.equal(stake.toNumber(), 0)
+                        done()
+                    });
+                })
+            });
+        });
+    });
+
+    it('should release stake', function(done) {
+        var submissionID = '0x2953a031a0e3f018886fbf6b1eaa044f9e2980476e207ea50087b0a3e32d7a30'
+        var numerai_hot_wallet = accounts[1]
+        var stakeBeforeRelease = 0;
+        var amount = 500
+        var nmr = Numeraire.deployed().then(function(instance) {
+            instance.stake(numerai_hot_wallet, submissionID, amount, {
                 from: accounts[0]
-            }).then(function(tx_id) {
-                var block = web3.eth.getBlock(tx_id.receipt.blockNumber);
-                return instance.releaseStake.call(submissionID, {
-                    from: accounts[0]
-                }).then(function(result) {
-                    assert.equal(result, true);
-                    done();
+            }).then(function() {
+                // TODO: Check that balanceOf(numerai) receives it
+                instance.staked.call(submissionID).then(function(stakeAmount) {
+                    stakeBeforeRelease = stakeAmount.toNumber()
+                })
+                return instance.releaseStake(submissionID, {from: accounts[0]}).then(function() {
+                    instance.staked.call(submissionID).then(function(stakeAfterRelease) {
+                        assert.equal(stakeBeforeRelease - amount, stakeAfterRelease.toNumber())
+                        done();
+                    })
                 });
             });
         });
