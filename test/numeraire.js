@@ -189,6 +189,46 @@ contract('Numeraire', function(accounts) {
         });
     });
 
+    it("should send NMR correctly", function(done) {
+        var nmr = Numeraire.deployed().then(function(instance) {
+            // Get initial balances of first and second account.
+            var account_one = accounts[1];
+            var account_two = accounts[2];
+
+            var account_one_starting_balance;
+            var account_two_starting_balance;
+            var account_one_ending_balance;
+            var account_two_ending_balance;
+
+            var amount = 1000000000 - 500;
+
+            return instance.mint(amount, {
+                from: accounts[0]
+            }).then(function() {
+                return instance.balanceOf.call(account_one).then(function(balance) {
+                    account_one_starting_balance = balance.toNumber();
+                    return instance.balanceOf.call(account_two);
+                }).then(function(balance) {
+                    account_two_starting_balance = balance.toNumber();
+                    return instance.transfer(account_one, amount, {
+                        from: account_two
+                    });
+                }).then(function() {
+                    return instance.balanceOf.call(account_one);
+                }).then(function(balance) {
+                    account_one_ending_balance = balance.toNumber();
+                    return instance.balanceOf.call(account_two);
+                }).then(function(balance) {
+                    account_two_ending_balance = balance.toNumber();
+
+                    assert.equal(account_one_ending_balance, account_one_starting_balance + amount, "Amount wasn't correctly sent to the receiver");
+                    assert.equal(account_two_ending_balance, account_two_starting_balance - amount, "Amount wasn't correctly taken from the sender");
+                    done();
+                });
+            });
+        });
+    });
+
 });
 
 // TODO: Calling mint, stake, transferNumerai, resolveStake, destroyStake from any address but the NumeraireBackend fails
