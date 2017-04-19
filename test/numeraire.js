@@ -1,3 +1,5 @@
+var BigNumber = require('bignumber.js');
+
 function rpc(method, arg) {
     var req = {
         jsonrpc: "2.0",
@@ -36,6 +38,7 @@ function ifUsingTestRPC() {
 //Some default values for gas
 var gasAmount = 3000000;
 var gasPrice = 20000000000;
+var initialDisbursement = new BigNumber(1500000000000000000000000);
 
 var Numeraire = artifacts.require("./NumeraireBackend.sol");
 var NumeraireDelegate = artifacts.require("./NumeraireDelegate.sol");
@@ -64,11 +67,31 @@ contract('Numeraire', function(accounts) {
     it("should set disbursement on creation", function(done) {
         Numeraire.deployed().then(function(nmrInstance) {
             nmrInstance.disbursement.call().then(function(disbursement) {
-                assert.equal(disbursement.toNumber(), 1500000000000000000000000)
+                assert.equal(true, disbursement.equals(initialDisbursement))
                 done()
             })
         })
     })
+
+
+    it("should not mint more than the disbursement", function(done) {
+        var prevBalance;
+        var nmr = Numeraire.deployed().then(function(instance) {
+            prevBalance = web3.eth.getBalance(accounts[0]);
+            instance.mint(initialDisbursement.add(1), {
+                    from: accounts[0],
+                    gasPrice: gasPrice,
+                    gas: gasAmount
+                })
+                .catch(ifUsingTestRPC)
+                .then(function() {
+                    checkAllGasSpent(gasAmount, gasPrice, accounts[0], prevBalance);
+                })
+                .then(function () {
+                    done()})
+                .catch(done);
+        });
+    });
 
     it("should mint correctly", function(done) {
         var nmr = Numeraire.deployed().then(function(instance) {
