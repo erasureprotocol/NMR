@@ -297,4 +297,3 @@ contract('Numeraire', function(accounts) {
 
 // TODO: Test multi-sig
 // TODO: Calling mint, stake, transferNumerai, resolveStake, destroyStake from any address but the NumeraireBackend fails
-// TODO: Calling mint, stake, transferNumerai, resolveStake, destroyStake from NumeraireBackend succeeds
