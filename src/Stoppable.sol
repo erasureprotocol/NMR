@@ -1,6 +1,7 @@
 pragma solidity ^0.4.8;
 
-import "contracts/Shareable.sol";
+import "ds-auth/auth.sol";
+
 
 // From OpenZepplin: https://github.com/OpenZeppelin/zeppelin-solidity/blob/master/contracts/lifecycle/Pausable.sol
 /*
@@ -8,22 +9,19 @@ import "contracts/Shareable.sol";
  * Abstract contract that allows children to implement an
  * emergency stop mechanism.
  */
-contract StoppableShareable is Shareable {
+contract Stoppable is DSAuth {
   bool public stopped;
 
   modifier stopInEmergency { if (!stopped) _; }
   modifier onlyInEmergency { if (stopped) _; }
 
-  function StoppableShareable(address[] _owners, uint _required) Shareable(_owners, _required) {
-  }
-
   // called by the owner on emergency, triggers stopped state
-  function emergencyStop() external onlyOwner {
+  function emergencyStop() external auth {
     stopped = true;
   }
 
   // called by the owner on end of emergency, returns to normal state
-  function release() external onlyManyOwners(sha3(msg.data)) onlyInEmergency {
+  function release() external auth onlyInEmergency {
     stopped = false;
   }
 }
