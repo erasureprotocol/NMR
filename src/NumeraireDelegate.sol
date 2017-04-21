@@ -16,7 +16,7 @@ contract NumeraireDelegate is DSAuth, DSMath, Stoppable, Destructible, Numeraire
     function mint(uint256 _value) auth returns (bool ok) {
 
         // Prevent minting more than the supply cap.
-        assert((_supply + _value) < supply_max);
+        assert((_supply + _value) <= supply_max);
 
         return true;
     }
