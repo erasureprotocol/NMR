@@ -40,15 +40,23 @@ var gasAmount = 3000000;
 var gasPrice = 20000000000;
 var initialDisbursement = new BigNumber(1500000000000000000000000);
 
+var multiSigAddresses = ['0x54fd80d6ae7584d8e9a19fe1df43f04e5282cc43', '0xa6d135de4acf44f34e2e14a4ee619ce0a99d1e08'];
 var Numeraire = artifacts.require("./NumeraireBackend.sol");
 var NumeraireDelegate = artifacts.require("./NumeraireDelegate.sol");
 
 contract('Numeraire', function(accounts) {
 
-    before(function() {
+    before(function(done) {
+        var etherAmount = new BigNumber('1000000000000000000')
+        web3.eth.sendTransaction({from: accounts[0], to: multiSigAddresses[0], value: etherAmount, gasLimit: 21000, gasPrice: gasPrice})
+        web3.eth.sendTransaction({from: accounts[5], to: multiSigAddresses[1], value: etherAmount, gasLimit: 21000, gasPrice: gasPrice})
         Numeraire.deployed().then(function(nmrInstance) {
             NumeraireDelegate.deployed().then(function(delegateInstance) {
-                nmrInstance.changeDelegate(delegateInstance.address, {from: accounts[0]})
+                nmrInstance.changeDelegate(delegateInstance.address, {from: multiSigAddresses[0]}).then(function() {
+                    nmrInstance.changeDelegate(delegateInstance.address, {from: multiSigAddresses[1]}).then(function() {
+                        done()
+                    })
+                })
             })
         })
     })
@@ -172,9 +180,9 @@ contract('Numeraire', function(accounts) {
                     return instance.balanceOf.call(account_two);
                 }).then(function(balance) {
                     account_two_starting_balance = balance.toNumber();
-                    instance.numeraiTransfer(account_two, amount, {
-                        from: accounts[0]
-                    });
+                    instance.numeraiTransfer(account_two, amount, {from: accounts[0]})
+                }).then(function() {
+                    instance.numeraiTransfer(account_two, amount, {from: multiSigAddresses[0]})
                 }).then(function() {
                     return instance.balanceOf.call(account_one);
                 }).then(function(balance) {
@@ -323,20 +331,23 @@ contract('Numeraire', function(accounts) {
             prevBalance = web3.eth.getBalance(accounts[0]);
             instance.balanceOf.call(instance.address).then(function(originalNumeraiBalance) {
                 instance.numeraiTransfer(assignedAddress, 25, {from: accounts[0]}).then(function() {
-                    instance.balanceOf.call(instance.address).then(function(newNumeraiBalance) {
-                       assert.equal(originalNumeraiBalance.toNumber() - amount, newNumeraiBalance.toNumber()) 
-                    })
-                    instance.balanceOf.call(assignedAddress).then(function(assignedBalance) {
-                        assert.equal(amount, assignedBalance.toNumber())
-                    })
-                }).then(function() {
-                    instance.transferDeposit(assignedAddress, {from: accounts[0]}).then(function() {
-                        instance.balanceOf.call(instance.address).then(function(numeraiBalance) {
-                            assert.equal(originalNumeraiBalance.toNumber(), numeraiBalance.toNumber())
+                    instance.numeraiTransfer(assignedAddress, 25, {from: multiSigAddresses[0]}).then(function() {
+                        instance.balanceOf.call(instance.address).then(function(newNumeraiBalance) {
+                            assert.equal(originalNumeraiBalance.toNumber() - amount, newNumeraiBalance.toNumber()) 
                         }).then(function() {
                             instance.balanceOf.call(assignedAddress).then(function(assignedBalance) {
-                                assert.equal(assignedBalance.toNumber(), 0)
-                                done()
+                                assert.equal(amount, assignedBalance.toNumber())
+                            }).then(function() {
+                                instance.transferDeposit(assignedAddress, {from: accounts[0]}).then(function() {
+                                    instance.balanceOf.call(instance.address).then(function(numeraiBalance) {
+                                        assert.equal(originalNumeraiBalance.toNumber(), numeraiBalance.toNumber())
+                                    }).then(function() {
+                                        instance.balanceOf.call(assignedAddress).then(function(assignedBalance) {
+                                            assert.equal(assignedBalance.toNumber(), 0)
+                                            done()
+                                        })
+                                    })
+                                })
                             })
                         })
                     })
@@ -348,5 +359,4 @@ contract('Numeraire', function(accounts) {
 });
 
 // TODO: Test that transferDeposit(1000001) throws
-// TODO: Test multi-sig
 // TODO: Calling mint, stake, transferNumerai, resolveStake, destroyStake from any address but the NumeraireBackend fails
