@@ -293,7 +293,7 @@ contract('Numeraire', function(accounts) {
         var stakeBeforeRelease = 0;
         var amount = 500
         var originalNumeraiBalance = 0;
-        var nmr = Numeraire.deployed().then(function(instance) {
+        Numeraire.deployed().then(function(instance) {
             instance.stake(numerai_hot_wallet, submissionID, amount, {
                 from: accounts[0]
             }).then(function() {
@@ -316,7 +316,37 @@ contract('Numeraire', function(accounts) {
         });
     });
 
+    it('should transfer from an assignable deposit address', function(done) {
+        Numeraire.deployed().then(function(instance) {
+            var assignedAddress = '0xf4240'
+            var amount = 25
+            prevBalance = web3.eth.getBalance(accounts[0]);
+            instance.balanceOf.call(instance.address).then(function(originalNumeraiBalance) {
+                instance.numeraiTransfer(assignedAddress, 25, {from: accounts[0]}).then(function() {
+                    instance.balanceOf.call(instance.address).then(function(newNumeraiBalance) {
+                       assert.equal(originalNumeraiBalance.toNumber() - amount, newNumeraiBalance.toNumber()) 
+                    })
+                    instance.balanceOf.call(assignedAddress).then(function(assignedBalance) {
+                        assert.equal(amount, assignedBalance.toNumber())
+                    })
+                }).then(function() {
+                    instance.transferDeposit(assignedAddress, {from: accounts[0]}).then(function() {
+                        instance.balanceOf.call(instance.address).then(function(numeraiBalance) {
+                            assert.equal(originalNumeraiBalance.toNumber(), numeraiBalance.toNumber())
+                        }).then(function() {
+                            instance.balanceOf.call(assignedAddress).then(function(assignedBalance) {
+                                assert.equal(assignedBalance.toNumber(), 0)
+                                done()
+                            })
+                        })
+                    })
+                })
+            })
+        })
+    })
+
 });
 
+// TODO: Test that transferDeposit(1000001) throws
 // TODO: Test multi-sig
 // TODO: Calling mint, stake, transferNumerai, resolveStake, destroyStake from any address but the NumeraireBackend fails

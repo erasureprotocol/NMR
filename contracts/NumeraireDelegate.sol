@@ -112,4 +112,18 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
         return true;
     }
 
+    // Allows Numerai to withdraw on behalf of a data scientist some NMR that they've deposited into a pre-assigned address
+    // Numerai will assign these addresses on its website
+    function transferDeposit(address from) onlyOwner returns(bool ok) {
+        var max_deposit_address = 1000000;
+        if (from > max_deposit_address) throw;
+        if (balance_of[from] == 0) throw;
+
+        if (!safeToSubtract(balance_of[numerai], balance_of[from])) throw;
+        balance_of[numerai] += balance_of[from];
+        balance_of[from] = 0;
+
+        return true;
+    }
+
 }
