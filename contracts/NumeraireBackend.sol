@@ -50,16 +50,20 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
         return delegateContract.delegatecall(bytes4(sha3("mint(uint256)")), _value);
     }
 
-    function stake(address stake_owner, bytes32 _submissionID, uint256 _value) stopInEmergency returns (bool ok) {
-        return delegateContract.delegatecall(bytes4(sha3("stake(address,bytes32,uint256)")), stake_owner, _submissionID, _value);
+    function stake(uint256 _value) stopInEmergency returns (bool ok) {
+        return delegateContract.delegatecall(bytes4(sha3("stake(uint256)")), _value);
     }
 
-    function releaseStake(bytes32 _submissionID) stopInEmergency returns (bool ok) {
-        return delegateContract.delegatecall(bytes4(sha3("releaseStake(bytes32)")), _submissionID);
+    function stakeOnBehalf(address _stake_owner, address _staker, uint256 _value) stopInEmergency returns (bool ok) {
+        return delegateContract.delegatecall(bytes4(sha3("stakeOnBehalf(address,address,uint256)")), _stake_owner, _staker, _value);
     }
 
-    function destroyStake(bytes32 _submissionID) stopInEmergency returns (bool ok) {
-        return delegateContract.delegatecall(bytes4(sha3("destroyStake(bytes32)")), _submissionID);
+    function releaseStake(address _staker, uint256 _timestamp, uint256 _etherValue) stopInEmergency returns (bool ok) {
+        return delegateContract.delegatecall(bytes4(sha3("releaseStake(address,uint256,uint256)")), _staker, _timestamp, _etherValue);
+    }
+
+    function destroyStake(address _staker, uint256 _timestamp) stopInEmergency returns (bool ok) {
+        return delegateContract.delegatecall(bytes4(sha3("destroyStake(address,uint256)")), _staker, _timestamp);
     }
 
     function numeraiTransfer(address _to, uint256 _value) returns(bool ok) {
@@ -71,8 +75,8 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
     }
 
     // Lookup stake
-    function stakeOf(bytes32 _submissionID) constant returns (uint256 _staked) {
-        return staked[_submissionID];
+    function stakeOf(address _staker, uint256 _timestamp) constant returns (uint256 _staked) {
+        return staked[_staker][_timestamp];
     }
 
     // ERC20: Send from a contract

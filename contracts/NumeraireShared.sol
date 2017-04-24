@@ -19,11 +19,11 @@ contract NumeraireShared {
 
     mapping (address => uint256) public balance_of;
     mapping (address => mapping (address => uint256)) public allowance_of;
-    mapping (bytes32 => uint256) public staked; // A map of submissionIDs to NMR values
+    mapping (address => mapping (uint256 => uint256)) public staked;  // Address of staker => timestamp => NMR value
 
     // Generates a public event on the blockchain to notify clients
     event Mint(uint256 value);
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
-    event Stake(bytes32 indexed submissionID, uint256 value);
+    event Stake(address indexed staker, uint256 value);
 }

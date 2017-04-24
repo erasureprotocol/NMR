@@ -199,21 +199,21 @@ contract('Numeraire', function(accounts) {
         });
     });
 
-    it('should stake NMR', (done) => {
-        var submissionID = '0x2953a031a0e3f018886fbf6b1eaa044f9e2980476e207ea50087b0a3e32d7a30'
+    it('should stake NMR on behalf of another account', (done) => {
         numerai_hot_wallet = accounts[2]
         var amount = 500
         var nmr = Numeraire.deployed().then(function(instance) {
             return instance.balanceOf.call(numerai_hot_wallet)
                 .then(() => instance.balanceOf.call(numerai_hot_wallet).then((balance) => {
-                    return instance.stake(numerai_hot_wallet, submissionID, amount, {
+                    return instance.stakeOnBehalf(numerai_hot_wallet, accounts[4], amount, {
                         from: accounts[0]
-                    }).then(() => {
-                        instance.stakeOf.call(submissionID).then(function(stakedAmount) {
+                    }).then(function(tx_id) {
+                        var block = web3.eth.getBlock(tx_id.receipt.blockNumber);
+                        instance.stakeOf.call(accounts[4], block.timestamp).then(function(stakedAmount) {
                             assert.equal(stakedAmount, amount)
                         })
                         // check if stakers balance has been reduced
-                        instance.staked.call(submissionID).then(function(stakedAmount) {
+                        instance.staked.call(accounts[4], block.timestamp).then(function(stakedAmount) {
                             assert.equal(stakedAmount, amount)
                         })
                         instance.balanceOf.call(numerai_hot_wallet).then((balance_after) => {
@@ -266,26 +266,23 @@ contract('Numeraire', function(accounts) {
     });
 
     it('should destroy stake', function(done) {
-        var submissionID = '0x2953a031a0e3f018886fbf6b1eaa044f9e2980476e207ea50087b0a3e32d7a30'
         var numerai_hot_wallet = accounts[1]
         var originalTotalSupply = 0;
         var amount = 500
-        var originalStakeAmount = 0;
         var nmr = Numeraire.deployed().then(function(instance) {
-            instance.stakeOf.call(submissionID).then(function(stake) {
-                originalStakeAmount = stake.toNumber()
-            }).then(function() {
-                instance.stake(numerai_hot_wallet, submissionID, amount, {from: accounts[0]}).then(function() {
-                    instance.totalSupply.call().then(function(totalSupply) {
-                        originalTotalSupply = totalSupply.toNumber()
-                    }).then(function() {
-                        instance.destroyStake(submissionID, {from: accounts[0]}).then(function() {
-                            instance.totalSupply.call().then(function(newSupply) {
-                                assert.equal(originalTotalSupply - amount - originalStakeAmount, newSupply.toNumber())
-                            }).then(function() {
-                                instance.staked.call(submissionID).then(function(stake) {
-                                    assert.equal(stake.toNumber(), 0)
-                                    done()
+        web3.evm.increaseTime(1).then(() => { // Make sure the block timestamp is new
+            return instance.stakeOnBehalf(numerai_hot_wallet, accounts[5], amount, {from: accounts[0]}).then(function(tx_id) {
+                instance.totalSupply.call().then(function(totalSupply) {
+                    originalTotalSupply = totalSupply.toNumber()
+                }).then(function() {
+                    var block = web3.eth.getBlock(tx_id.receipt.blockNumber)
+                    instance.destroyStake(accounts[5], block.timestamp, {from: accounts[0]}).then(function() {
+                        instance.totalSupply.call().then(function(newSupply) {
+                            assert.equal(originalTotalSupply - amount, newSupply.toNumber())
+                        }).then(function() {
+                            instance.staked.call(accounts[5], block.timestamp).then(function(stake) {
+                                assert.equal(stake.toNumber(), 0)
+                                done()
                                 })
                             })
                         })
@@ -296,26 +293,26 @@ contract('Numeraire', function(accounts) {
     })
 
     it('should release stake', function(done) {
-        var submissionID = '0x2953a031a0e3f018886fbf6b1eaa044f9e2980476e207ea50087b0a3e32d7a30'
         var numerai_hot_wallet = accounts[1]
         var stakeBeforeRelease = 0;
         var amount = 500
         var originalNumeraiBalance = 0;
         Numeraire.deployed().then(function(instance) {
-            instance.stake(numerai_hot_wallet, submissionID, amount, {
+            return instance.stakeOnBehalf(numerai_hot_wallet, accounts[6], amount, {
                 from: accounts[0]
-            }).then(function() {
+            }).then(function(tx_id) {
+                var block = web3.eth.getBlock(tx_id.receipt.blockNumber);
                 instance.balanceOf.call(instance.address).then(function(numeraiBalance) {
                     originalNumeraiBalance = numeraiBalance.toNumber()
                 })
-                instance.staked.call(submissionID).then(function(stakeAmount) {
+                instance.staked.call(accounts[6], block.timestamp).then(function(stakeAmount) {
                     stakeBeforeRelease = stakeAmount.toNumber()
                 })
-                return instance.releaseStake(submissionID, {from: accounts[0]}).then(function() {
+                return instance.releaseStake(accounts[6], block.timestamp, 0, {from: accounts[0]}).then(function() {
                     instance.balanceOf.call(instance.address).then(function(numeraiBalance) {
                         assert.equal(originalNumeraiBalance + amount, numeraiBalance.toNumber())
                     })
-                    instance.staked.call(submissionID).then(function(stakeAfterRelease) {
+                    instance.staked.call(accounts[6], block.timestamp).then(function(stakeAfterRelease) {
                         assert.equal(stakeBeforeRelease - amount, stakeAfterRelease.toNumber())
                         done();
                     })
@@ -358,5 +355,6 @@ contract('Numeraire', function(accounts) {
 
 });
 
+// TODO: Test stake()
 // TODO: Test that transferDeposit(1000001) throws
 // TODO: Calling mint, stake, transferNumerai, resolveStake, destroyStake from any address but the NumeraireBackend fails

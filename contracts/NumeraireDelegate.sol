@@ -41,55 +41,78 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
     }
 
     // Release staked tokens if the predictions were successful
-    function releaseStake(bytes32 _submissionID) onlyOwner stopInEmergency returns (bool ok) {
-        var stake = staked[_submissionID];
+    // In the future this will use .send() to also send _etherValue ether to the winner
+    function releaseStake(address _staker, uint256 _timestamp, uint256 _etherValue) onlyOwner stopInEmergency returns (bool ok) {
+        var stake = staked[_staker][_timestamp];
         if (stake == 0) {
           throw;
         }
 
-        if (!safeToSubtract(staked[_submissionID], stake)) throw;
+        if (!safeToSubtract(staked[_staker][_timestamp], stake)) throw;
         if (!safeToAdd(balance_of[numerai], stake)) throw;
 
-        staked[_submissionID] -= stake;
+        staked[_staker][_timestamp] -= stake;
         balance_of[numerai] += stake;
 
         return true;
     }
 
     // Destroy staked tokens if the predictions were not successful
-    function destroyStake(bytes32 _submissionID) onlyOwner stopInEmergency returns (bool ok) {
-        var stake = staked[_submissionID];
+    function destroyStake(address _staker, uint256 _timestamp) onlyOwner stopInEmergency returns (bool ok) {
+        var stake = staked[_staker][_timestamp];
         if(stake == 0) {
           throw;
         }
 
         // Reduce the total supply by the staked amount and destroy the stake.
-        if (!safeToSubtract(total_supply, staked[_submissionID])) throw;
+        if (!safeToSubtract(total_supply, staked[_staker][_timestamp])) throw;
 
-        total_supply -= staked[_submissionID];
-        staked[_submissionID] = 0;
+        total_supply -= staked[_staker][_timestamp];
+        staked[_staker][_timestamp] = 0;
 
         return true;
     }
 
-    // Only Numerai can stake NMR, stake_owner will always be Numeari's hot wallet
-    function stake(address stake_owner, bytes32 _submissionID, uint256 _value) onlyOwner stopInEmergency returns (bool ok) {
+    // Anyone but Numerai can stake on themselves
+    function stake(uint256 _value) stopInEmergency returns (bool ok) {
         // Numerai cannot stake on itself
-        if (isOwner(stake_owner) || stake_owner == numerai) throw;
+        if (isOwner(msg.sender) || msg.sender == numerai) throw;
 
         // Check for sufficient funds.
-        if (balance_of[stake_owner] < _value) throw;
+        if (balance_of[msg.sender] < _value) throw;
 
         // Prevent overflows.
-        if (staked[_submissionID] + _value < staked[_submissionID]) throw;
-        if (!safeToAdd(staked[_submissionID], _value)) throw;
-        if (!safeToSubtract(balance_of[stake_owner], _value)) throw;
+        if (staked[msg.sender][block.timestamp] + _value < staked[msg.sender][block.timestamp]) throw;
+        if (!safeToAdd(staked[msg.sender][block.timestamp], _value)) throw;
+        if (!safeToSubtract(balance_of[msg.sender], _value)) throw;
 
-        balance_of[stake_owner] -= _value;
-        staked[_submissionID] += _value;
+        balance_of[msg.sender] -= _value;
+        staked[msg.sender][block.timestamp] += _value;
 
         // Notify anyone listening.
-        Stake(_submissionID, _value);
+        Stake(msg.sender, _value);
+
+        return true;
+    }
+
+    // Only Numerai can stake on behalf of other accounts. _stake_owner will always be Numeari's hot wallet
+    function stakeOnBehalf(address _stake_owner, address _staker, uint256 _value) onlyOwner stopInEmergency returns (bool ok) {
+        // Numerai cannot stake on itself
+        if (isOwner(_stake_owner) || _stake_owner == numerai) throw;
+
+        // Check for sufficient funds.
+        if (balance_of[_stake_owner] < _value) throw;
+
+        // Prevent overflows.
+        if (staked[_staker][block.timestamp] + _value < staked[_staker][block.timestamp]) throw;
+        if (!safeToAdd(staked[_staker][block.timestamp], _value)) throw;
+        if (!safeToSubtract(balance_of[_stake_owner], _value)) throw;
+
+        balance_of[_stake_owner] -= _value;
+        staked[_staker][block.timestamp] += _value;
+
+        // Notify anyone listening.
+        Stake(_staker, _value);
 
         return true;
     }
