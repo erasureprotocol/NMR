@@ -24,7 +24,7 @@ Authors: [Alex Mingoia](https://github.com/alexmingoia), [Joey Krug](https://git
 - Install dependencies: `npm install`
 
 ### Compile
-- `truffle compile`
+- `solc --bin contracts/NumeraireBackend.sol` or `truffle compile`
 
 ### Test
 - `testrpc -p 6545 -u 0x54fd80d6ae7584d8e9a19fe1df43f04e5282cc43 -u 0xa6d135de4acf44f34e2e14a4ee619ce0a99d1e0` to start the test server with the multi-sig keys unlocked
