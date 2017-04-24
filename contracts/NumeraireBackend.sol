@@ -76,7 +76,7 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
     }
 
     // Lookup stake
-    function stakeOf(address _staker, uint256 _timestamp, uint256 _tournament) constant returns (uint256 _staked) {
+    function lookupStake(address _staker, uint256 _timestamp, uint256 _tournament) constant returns (uint256 _staked) {
         return staked[_tournament][_staker][_timestamp];
     }
 

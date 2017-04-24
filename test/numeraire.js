@@ -206,7 +206,7 @@ contract('Numeraire', function(accounts) {
             instance.balanceOf.call(numerai_hot_wallet).then((balance) => {
                 return instance.stakeOnBehalf(numerai_hot_wallet, accounts[4], amount, 0, {from: accounts[0]}).then(function(tx_id) {
                     var block = web3.eth.getBlock(tx_id.receipt.blockNumber)
-                    instance.stakeOf.call(accounts[4], block.timestamp, 0).then(function(stakedAmount) {
+                    instance.lookupStake.call(accounts[4], block.timestamp, 0).then(function(stakedAmount) {
                         assert.equal(stakedAmount, amount)
                     })
                     // check if stakers balance has been reduced
@@ -230,7 +230,7 @@ contract('Numeraire', function(accounts) {
             instance.balanceOf.call(userAccount).then((balance) => {
                 return instance.stake(amount, 0, {from: userAccount}).then(function(tx_id) {
                     var block = web3.eth.getBlock(tx_id.receipt.blockNumber)
-                    instance.stakeOf.call(userAccount, block.timestamp, 0).then(function(stakedAmount) {
+                    instance.lookupStake.call(userAccount, block.timestamp, 0).then(function(stakedAmount) {
                         assert.equal(stakedAmount, amount)
                     })
                     // check if stakers balance has been reduced
