@@ -41,86 +41,134 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
     }
 
     // Numerai calls this function to release staked tokens when the staked predictions were successful
-    function releaseStake(address _staker, uint256 _timestamp, uint256 _etherValue, uint256 _tournament) onlyOwner stopInEmergency returns (bool ok) {
-        var stake = staked[_tournament][_staker][_timestamp];
-        if (stake == 0) throw;
+    function releaseStake(address _staker, uint256 _etherValue, uint256 _tournamentID, uint256 _roundID, bool _successful) onlyOwner stopInEmergency returns (bool ok) {
+        var round = tournaments[_tournamentID].rounds[_roundID];
+        var stake = round.stakes[_staker];
+        var originalStakeAmount = stake.amount;
 
-        Mint(_timestamp);
-        Mint(resolution_period);
-        Mint(block.timestamp);
-        if ((_timestamp + resolution_period) > block.timestamp) throw;
+        if (stake.amount <= 0) throw;
+        if (stake.resolved) throw;
+        if (round.resolutionTime > block.timestamp) throw;
+        if (!safeToAdd(balance_of[numerai], stake.amount)) throw;
 
-        if (!safeToSubtract(staked[_tournament][_staker][_timestamp], stake)) throw;
-        if (!safeToAdd(balance_of[numerai], stake)) throw;
+        stake.amount = 0;
+        balance_of[_staker] += originalStakeAmount;
+        stake.resolved = true;
+        stake.successful = _successful;
 
-        staked[_tournament][_staker][_timestamp] -= stake;
-        balance_of[numerai] += stake;
         if (_etherValue > 0) {
             if (!_staker.send(_etherValue)) {
-                staked[_tournament][_staker][_timestamp] += stake;
-                balance_of[numerai] -= stake;
+                stake.amount += originalStakeAmount;
+                balance_of[_staker] -= originalStakeAmount;
+                stake.resolved = false;
+                stake.successful = false;
                 return false;
             }
         }
+
+        StakeReleased(_tournamentID, _roundID, _staker, _etherValue);
         return true;
     }
 
     // Destroy staked tokens if the predictions were not successful
-    function destroyStake(address _staker, uint256 _timestamp, uint256 _tournament) onlyOwner stopInEmergency returns (bool ok) {
-        var stake = staked[_tournament][_staker][_timestamp];
-        if(stake == 0) {
-          throw;
-        }
+    function destroyStake(address _staker, uint256 _tournamentID, uint256 _roundID) onlyOwner stopInEmergency returns (bool ok) {
+        var round = tournaments[_tournamentID].rounds[_roundID];
+        var stake = round.stakes[_staker];
+        var originalStakeAmount = stake.amount;
 
-        // Reduce the total supply by the staked amount and destroy the stake.
-        if (!safeToSubtract(total_supply, staked[_tournament][_staker][_timestamp])) throw;
+        if (stake.amount <= 0) throw;
+        if (stake.resolved) throw;
+        if (round.resolutionTime > block.timestamp) throw;
+        if (!safeToSubtract(total_supply, stake.amount)) throw;
 
-        total_supply -= staked[_tournament][_staker][_timestamp];
-        staked[_tournament][_staker][_timestamp] = 0;
+        stake.amount = 0;
+        total_supply -= originalStakeAmount;
+        stake.resolved = true;
+        stake.successful = false;
 
+        StakeDestroyed(_tournamentID, _roundID, _staker);
         return true;
     }
 
     // Anyone but Numerai can stake on themselves
-    function stake(uint256 _value, uint256 _tournament) stopInEmergency returns (bool ok) {
-        // Numerai cannot stake on itself
-        if (isOwner(msg.sender) || msg.sender == numerai) throw;
+    function stake(uint256 _value, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) stopInEmergency returns (bool ok) {
+        var tournament = tournaments[_tournamentID];
+        var round = tournament.rounds[_roundID];
+        var stake = round.stakes[msg.sender];
 
-        // Check for sufficient funds.
-        if (balance_of[msg.sender] < _value) throw;
+        if (isOwner(msg.sender) || msg.sender == numerai) throw; // Numerai cannot stake on itself
+        if (balance_of[msg.sender] < _value) throw; // Check for sufficient funds
+        if (tournament.creationTime <= 0) throw; // This tournament must be initialized
+        if (round.creationTime <= 0) throw; // This round must be initialized
+        if (round.resolutionTime <= block.timestamp) throw; // Can't stake after round ends
 
         // Prevent overflows.
-        if (staked[_tournament][msg.sender][block.timestamp] + _value < staked[_tournament][msg.sender][block.timestamp]) throw;
-        if (!safeToAdd(staked[_tournament][msg.sender][block.timestamp], _value)) throw;
+        if (!safeToAdd(round.numStakes, 1)) throw;
+        if (!safeToAdd(stake.amount, _value)) throw;
         if (!safeToSubtract(balance_of[msg.sender], _value)) throw;
 
+        if (stake.confidence == 0) {
+            stake.confidence = _confidence;
+        }
+        else if (stake.confidence <= _confidence) {
+            stake.confidence = _confidence;
+        }
+        else {
+            throw; // Confidence can only increased or set to the same, non-zero number
+        }
+
+        round.stakeAddresses.push(msg.sender);
+        round.numStakes += 1;
+        stake.amount += _value;
         balance_of[msg.sender] -= _value;
-        staked[_tournament][msg.sender][block.timestamp] += _value;
+        stake.timestamps.push(block.timestamp);
+        stake.amounts.push(_value);
 
         // Notify anyone listening.
-        Stake(msg.sender, _value, _tournament);
+        StakeCreated(msg.sender, stake.amount, _tournamentID, _roundID);
 
         return true;
     }
 
     // Only Numerai can stake on behalf of other accounts. _stake_owner will always be Numeari's hot wallet
-    function stakeOnBehalf(address _stake_owner, address _staker, uint256 _value, uint256 _tournament) onlyOwner stopInEmergency returns (bool ok) {
+    function stakeOnBehalf(address _stake_owner, address _staker, uint256 _value, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) onlyOwner stopInEmergency returns (bool ok) {
+        var tournament = tournaments[_tournamentID];
+        var round = tournament.rounds[_roundID];
+        var stake = round.stakes[_staker];
+
         // Numerai cannot stake on itself
         if (isOwner(_stake_owner) || _stake_owner == numerai) throw;
+        if (isOwner(_staker) || _staker == numerai) throw;
 
-        // Check for sufficient funds.
-        if (balance_of[_stake_owner] < _value) throw;
+        if (balance_of[_stake_owner] < _value) throw; // Check for sufficient funds
+        if (tournament.creationTime <= 0) throw; // This tournament must be initialized
+        if (round.creationTime <= 0) throw; // This round must be initialized
+        if (round.resolutionTime <= block.timestamp) throw; // Can't stake after round ends
 
         // Prevent overflows.
-        if (staked[_tournament][_staker][block.timestamp] + _value < staked[_tournament][_staker][block.timestamp]) throw;
-        if (!safeToAdd(staked[_tournament][_staker][block.timestamp], _value)) throw;
+        if (!safeToAdd(round.numStakes, 1)) throw;
+        if (!safeToAdd(stake.amount, _value)) throw;
         if (!safeToSubtract(balance_of[_stake_owner], _value)) throw;
 
+        if (stake.confidence == 0) {
+            stake.confidence = _confidence;
+        }
+        else if (stake.confidence <= _confidence) {
+            stake.confidence = _confidence;
+        }
+        else {
+            throw; // Confidence can only increased or set to the same, non-zero number
+        }
+
+        round.stakeAddresses.push(_staker);
+        round.numStakes += 1;
+        stake.amount += _value;
         balance_of[_stake_owner] -= _value;
-        staked[_tournament][_staker][block.timestamp] += _value;
+        stake.timestamps.push(block.timestamp);
+        stake.amounts.push(_value);
 
         // Notify anyone listening.
-        Stake(_staker, _value, _tournament);
+        StakeCreated(_staker, stake.amount, _tournamentID, _roundID);
 
         return true;
     }

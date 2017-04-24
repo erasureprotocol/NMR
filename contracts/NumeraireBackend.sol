@@ -51,20 +51,20 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
         return delegateContract.delegatecall(bytes4(sha3("mint(uint256)")), _value);
     }
 
-    function stake(uint256 _value, uint256 _tournament) stopInEmergency returns (bool ok) {
-        return delegateContract.delegatecall(bytes4(sha3("stake(uint256,uint256)")), _value, _tournament);
+    function stake(uint256 _value, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) stopInEmergency returns (bool ok) {
+        return delegateContract.delegatecall(bytes4(sha3("stake(uint256,uint256,uint256,uint256)")), _value, _tournamentID, _roundID, _confidence);
     }
 
-    function stakeOnBehalf(address _stake_owner, address _staker, uint256 _value, uint256 _tournament) stopInEmergency returns (bool ok) {
-        return delegateContract.delegatecall(bytes4(sha3("stakeOnBehalf(address,address,uint256,uint256)")), _stake_owner, _staker, _value, _tournament);
+    function stakeOnBehalf(address _stake_owner, address _staker, uint256 _value, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) stopInEmergency returns (bool ok) {
+        return delegateContract.delegatecall(bytes4(sha3("stakeOnBehalf(address,address,uint256,uint256,uint256,uint256)")), _stake_owner, _staker, _value, _tournamentID, _roundID, _confidence);
     }
 
-    function releaseStake(address _staker, uint256 _timestamp, uint256 _etherValue, uint256 _tournament) stopInEmergency returns (bool ok) {
-        return delegateContract.delegatecall(bytes4(sha3("releaseStake(address,uint256,uint256,uint256)")), _staker, _timestamp, _etherValue, _tournament);
+    function releaseStake(address _staker, uint256 _etherValue, uint256 _tournamentID, uint256 _roundID, bool _successful) stopInEmergency returns (bool ok) {
+        return delegateContract.delegatecall(bytes4(sha3("releaseStake(address,uint256,uint256,uint256,bool)")), _staker, _etherValue, _tournamentID, _roundID, _successful);
     }
 
-    function destroyStake(address _staker, uint256 _timestamp, uint256 _tournament) stopInEmergency returns (bool ok) {
-        return delegateContract.delegatecall(bytes4(sha3("destroyStake(address,uint256,uint256)")), _staker, _timestamp, _tournament);
+    function destroyStake(address _staker, uint256 _tournamentID, uint256 _roundID) stopInEmergency returns (bool ok) {
+        return delegateContract.delegatecall(bytes4(sha3("destroyStake(address,uint256,uint256)")), _staker, _tournamentID, _roundID);
     }
 
     function numeraiTransfer(address _to, uint256 _value) returns(bool ok) {
@@ -75,9 +75,40 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
         return delegateContract.delegatecall(bytes4(sha3("transferDeposit(address)")), _from);
     }
 
+    function createTournament(uint256 _tournamentID) returns (bool ok) {
+        var tournament = tournaments[_tournamentID];
+        if (tournament.creationTime != 0) throw; // Already created
+        tournament.creationTime = block.timestamp;
+        tournament.numRounds = 0;
+        return true;
+    }
+
+    function createRound(uint256 _tournamentID, uint256 _roundID, uint256 _resolutionTime) returns (bool ok) {
+        var tournament = tournaments[_tournamentID];
+        var round = tournament.rounds[_roundID];
+        if (round.creationTime != 0) throw;
+        tournament.roundIDs.push(_roundID);
+        round.creationTime = block.timestamp;
+        round.resolutionTime = _resolutionTime;
+        round.numStakes = 0;
+        tournament.numRounds += 1;
+        return true;
+    }
+
+    function getTournament(uint256 _tournamentID) constant returns (uint256, uint256, uint256[]) {
+        var tournament = tournaments[_tournamentID];
+        return (tournament.creationTime, tournament.numRounds, tournament.roundIDs);
+    }
+
+    function getRound(uint256 _tournamentID, uint256 _roundID) constant returns (uint256, uint256, uint256, address[]) {
+        var round = tournaments[_tournamentID].rounds[_roundID];
+        return (round.creationTime, round.resolutionTime, round.numStakes, round.stakeAddresses);
+    }
+
     // Lookup stake
-    function lookupStake(address _staker, uint256 _timestamp, uint256 _tournament) constant returns (uint256 _staked) {
-        return staked[_tournament][_staker][_timestamp];
+    function getStake(uint256 _tournamentID, uint256 _roundID, address _staker) constant returns (uint256[], uint256[], uint256, uint256, bool, bool) {
+        var stake = tournaments[_tournamentID].rounds[_roundID].stakes[_staker];
+        return (stake.amounts, stake.timestamps, stake.confidence, stake.amount, stake.successful, stake.resolved);
     }
 
     // ERC20: Send from a contract

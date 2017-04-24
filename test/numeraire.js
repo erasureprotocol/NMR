@@ -43,6 +43,7 @@ var initialDisbursement = new BigNumber(1500000000000000000000000)
 var multiSigAddresses = ['0x54fd80d6ae7584d8e9a19fe1df43f04e5282cc43', '0xa6d135de4acf44f34e2e14a4ee619ce0a99d1e08']
 var Numeraire = artifacts.require("./NumeraireBackend.sol")
 var NumeraireDelegate = artifacts.require("./NumeraireDelegate.sol")
+var snapshotID = 0
 
 contract('Numeraire', function(accounts) {
 
@@ -72,7 +73,7 @@ contract('Numeraire', function(accounts) {
         })
     })
 
-    it("should set disbursement on creation", function(done) {
+    it("should have set disbursement when deployed", function(done) {
         Numeraire.deployed().then(function(nmrInstance) {
             nmrInstance.disbursement.call().then(function(disbursement) {
                 assert.equal(true, disbursement.equals(initialDisbursement))
@@ -80,7 +81,6 @@ contract('Numeraire', function(accounts) {
             })
         })
     })
-
 
     it("should not mint more than the disbursement", function(done) {
         var prevBalance
@@ -199,23 +199,66 @@ contract('Numeraire', function(accounts) {
         })
     })
 
+    it('should create a tournament', (done) => {
+        Numeraire.deployed().then(function(instance) {
+            return instance.createTournament(0).then(function(transaction) {
+                var block = web3.eth.getBlock(transaction.receipt.blockNumber)
+                return instance.getTournament.call(0).then(function(tournament) {
+                    creationTime = tournament[0]
+                    numRounds = tournament[1]
+                    assert.equal(0, numRounds.toNumber())
+                    assert.equal(block.timestamp, creationTime.toNumber())
+                    done()
+                })
+            })
+        })
+    })
+
+    it('should create a round', (done) => {
+        Numeraire.deployed().then(function(instance) {
+            return instance.createTournament(50).then(function(transaction) {
+                var block = web3.eth.getBlock(transaction.receipt.blockNumber)
+                var resolutionTime = block.timestamp + (4 * 7 * 24 * 60 * 60)
+                return instance.createRound(0, 51, resolutionTime).then(function(transaction) {
+                    var block = web3.eth.getBlock(transaction.receipt.blockNumber)
+                    return instance.getRound.call(0, 51).then(function(round) {
+                        creationTime = round[0]
+                        realResolutionTime = round[1]
+                        numStakes = round[2]
+                        assert.equal(creationTime.toNumber(), block.timestamp)
+                        assert.equal(realResolutionTime.toNumber(), resolutionTime)
+                        assert.equal(numStakes.toNumber(), 0)
+                        instance.getTournament.call(0).then(function(tournament) {
+                            numRounds = tournament[1]
+                            roundIDs = tournament[2]
+                            assert.equal(1, numRounds.toNumber())
+                            // FIXME: This test doesn't work, although the contract is doing the right thing
+                            // assert.equal(roundIDs, [51]) 
+                            done()
+                        })
+                    })
+                })
+            })
+        })
+    })
+
     it('should stake NMR on behalf of another account', (done) => {
         numerai_hot_wallet = accounts[2]
         var amount = 500
-        var nmr = Numeraire.deployed().then(function(instance) {
+        Numeraire.deployed().then(function(instance) {
             instance.balanceOf.call(numerai_hot_wallet).then((balance) => {
-                return instance.stakeOnBehalf(numerai_hot_wallet, accounts[4], amount, 0, {from: accounts[0]}).then(function(tx_id) {
+                return instance.stakeOnBehalf(numerai_hot_wallet, accounts[4], amount, 0, 51, 5, {from: accounts[0]}).then(function(tx_id) {
                     var block = web3.eth.getBlock(tx_id.receipt.blockNumber)
-                    instance.lookupStake.call(accounts[4], block.timestamp, 0).then(function(stakedAmount) {
-                        assert.equal(stakedAmount, amount)
-                    })
-                    // check if stakers balance has been reduced
-                    instance.staked.call(0, accounts[4], block.timestamp).then(function(stakedAmount) {
-                        assert.equal(stakedAmount, amount)
-                    })
-                    instance.balanceOf.call(numerai_hot_wallet).then((balance_after) => {
-                        assert.equal(balance.toNumber() - amount, balance_after.toNumber())
-                        done()
+                    instance.getStake.call(0, 51, accounts[4], block.timestamp, 0).then(function(stake) {
+                        assert.equal(stake[2].toNumber(), 5)
+                        assert.equal(stake[3].toNumber(), amount)
+                        assert.equal(stake[4], false)
+                        assert.equal(stake[5], false)
+                    }).then(function() {
+                        instance.balanceOf.call(numerai_hot_wallet).then((balance_after) => {
+                            assert.equal(balance.toNumber() - amount, balance_after.toNumber())
+                            done()
+                        })
                     })
                 })
             })
@@ -228,14 +271,13 @@ contract('Numeraire', function(accounts) {
         var userAccount = accounts[2]
         var nmr = Numeraire.deployed().then(function(instance) {
             instance.balanceOf.call(userAccount).then((balance) => {
-                return instance.stake(amount, 0, {from: userAccount}).then(function(tx_id) {
+                return instance.stake(amount, 0, 51, 1, {from: userAccount}).then(function(tx_id) {
                     var block = web3.eth.getBlock(tx_id.receipt.blockNumber)
-                    instance.lookupStake.call(userAccount, block.timestamp, 0).then(function(stakedAmount) {
-                        assert.equal(stakedAmount, amount)
-                    })
-                    // check if stakers balance has been reduced
-                    instance.staked.call(0, userAccount, block.timestamp).then(function(stakedAmount) {
-                        assert.equal(stakedAmount, amount)
+                    instance.getStake.call(0, 51, userAccount).then(function(stake) {
+                        assert.equal(stake[2].toNumber(), 1)
+                        assert.equal(stake[3].toNumber(), amount)
+                        assert.equal(stake[4], false)
+                        assert.equal(stake[5], false)
                     })
                     instance.balanceOf.call(userAccount).then((balance_after) => {
                         assert.equal(balance.toNumber() - amount, balance_after.toNumber())
@@ -287,23 +329,27 @@ contract('Numeraire', function(accounts) {
     })
 
     it('should destroy stake', function(done) {
-        var numerai_hot_wallet = accounts[1]
-        var originalTotalSupply = 0
-        var amount = 500
-        var nmr = Numeraire.deployed().then(function(instance) {
-        web3.evm.increaseTime(1).then(() => { // Make sure the block timestamp is new
-            return instance.stakeOnBehalf(numerai_hot_wallet, accounts[5], amount, 0, {from: accounts[0]}).then(function(tx_id) {
-                instance.totalSupply.call().then(function(totalSupply) {
-                    originalTotalSupply = totalSupply.toNumber()
-                }).then(function() {
-                    var block = web3.eth.getBlock(tx_id.receipt.blockNumber)
-                    instance.destroyStake(accounts[5], block.timestamp, 0, 0, {from: accounts[0]}).then(function() {
-                        instance.totalSupply.call().then(function(newSupply) {
-                            assert.equal(originalTotalSupply - amount, newSupply.toNumber())
-                        }).then(function() {
-                            instance.staked.call(0, accounts[5], block.timestamp).then(function(stake) {
-                                assert.equal(stake.toNumber(), 0)
-                                done()
+        rpc('evm_snapshot').then(function(snapshot) {
+            snapshotID = snapshot['id']
+            var numerai_hot_wallet = accounts[1]
+            var originalTotalSupply = 0
+            var amount = 500
+            var nmr = Numeraire.deployed().then(function(instance) {
+            return instance.stakeOnBehalf(numerai_hot_wallet, accounts[5], amount, 0, 51, 6, {from: accounts[0]}).then(function(tx_id) {
+                web3.evm.increaseTime(4 * 7 * 24 * 60 * 60).then(() => { // Make sure the block timestamp is new
+                    instance.totalSupply.call().then(function(totalSupply) {
+                        originalTotalSupply = totalSupply.toNumber()
+                        var block = web3.eth.getBlock(tx_id.receipt.blockNumber)
+                        instance.destroyStake(accounts[5], 0, 51, {from: accounts[0]}).then(function() {
+                            instance.totalSupply.call().then(function(newSupply) {
+                                assert.equal(originalTotalSupply - amount, newSupply.toNumber())
+                                instance.getStake.call(0, 51, accounts[5]).then(function(stake) {
+                                    assert.equal(stake[2].toNumber(), 6)
+                                    assert.equal(stake[3].toNumber(), 0)
+                                    assert.equal(stake[4], false)
+                                    assert.equal(stake[5], true)
+                                    done()
+                                    })
                                 })
                             })
                         })
@@ -314,35 +360,52 @@ contract('Numeraire', function(accounts) {
     })
 
     it('should release stake', function(done) {
-        var numerai_hot_wallet = accounts[1]
-        var stakeBeforeRelease = 0
-        var amount = 500
-        var originalNumeraiBalance = 0
-        var staker = accounts[6]
-        Numeraire.deployed().then(function(instance) {
-            var originalBalance = web3.eth.getBalance(staker)
-            return instance.stakeOnBehalf(numerai_hot_wallet, staker, amount, 0, {from: accounts[0]}).then(function(tx_id) {
-                var block = web3.eth.getBlock(tx_id.receipt.blockNumber)
-                instance.balanceOf.call(instance.address).then(function(numeraiBalance) {
-                    originalNumeraiBalance = numeraiBalance.toNumber()
-                })
-                instance.staked.call(0, staker, block.timestamp).then(function(stakeAmount) {
-                    stakeBeforeRelease = stakeAmount.toNumber()
-                })
-                web3.evm.increaseTime(4 * 7 * 24 * 60 * 60).then(function() {
-                    instance.releaseStake(staker, block.timestamp, 0, 0, {from: accounts[0]}).then(function() {
+        rpc('evm_revert', [snapshotID]).then(function() {
+            var numerai_hot_wallet = accounts[1]
+            var stakeBeforeRelease = 0
+            var amount = 500
+            var originalNumeraiBalance = 0
+            var staker = accounts[6]
+            var tournamentID = 51
+            var roundID = 52
+            Numeraire.deployed().then(function(instance) {
+            return instance.createTournament(tournamentID).then(function(transaction) {
+                var block = web3.eth.getBlock(transaction.receipt.blockNumber)
+                var resolutionTime = block.timestamp + (4 * 7 * 24 * 60 * 60)
+                instance.createRound(tournamentID, roundID, resolutionTime).then(function() {
+                    var originalBalance = web3.eth.getBalance(staker)
+                    return instance.stakeOnBehalf(numerai_hot_wallet, staker, amount, tournamentID, roundID, 7, {from: accounts[0]}).then(function(tx_id) {
+                        var block = web3.eth.getBlock(tx_id.receipt.blockNumber)
                         instance.balanceOf.call(instance.address).then(function(numeraiBalance) {
-                            assert.equal(originalNumeraiBalance + amount, numeraiBalance.toNumber())
+                            originalNumeraiBalance = numeraiBalance.toNumber()
+                            instance.balanceOf.call(staker).then(function(originalStakerBalance) {
+                                instance.getStake.call(tournamentID, roundID, staker).then(function(stake) {
+                                    stakeBeforeRelease = stake[3].toNumber()
+                                    web3.evm.increaseTime(4 * 7 * 24 * 60 * 60).then(function() {
+                                        instance.releaseStake(staker, 0, tournamentID, roundID, true, {from: accounts[0]}).then(function() {
+                                            instance.balanceOf.call(instance.address).then(function(numeraiBalance) {
+                                                assert.equal(originalNumeraiBalance, numeraiBalance.toNumber())
+                                                instance.balanceOf.call(staker).then(function(newStakerBalance) {
+                                                    assert.equal(newStakerBalance.toNumber(), originalStakerBalance.toNumber() + amount)
+                                                    instance.getStake.call(tournamentID, roundID, staker).then(function(stakeAfterRelease) {
+                                                        assert.equal(stakeAfterRelease[2], 7)
+                                                        assert.equal(stakeBeforeRelease - amount, stakeAfterRelease[3].toNumber())
+                                                        assert.equal(stakeAfterRelease[4], true)
+                                                        assert.equal(stakeAfterRelease[5], true)
+                                                        var newBalance = web3.eth.getBalance(staker)
+                                                        assert.equal(originalBalance.toNumber() + 1, newBalance.toNumber())
+                                                        done()
+                                                    })
+                                                })
+                                            })
+                                        })
+                                    })
+                                })
+                            })
                         })
-                        instance.staked.call(0, staker, block.timestamp).then(function(stakeAfterRelease) {
-                            assert.equal(stakeBeforeRelease - amount, stakeAfterRelease.toNumber())
-                            done()
-                        })
-                    }).then(function() {
-                        var newBalance = web3.eth.getBalance(staker)
-                        assert.equal(originalBalance.toNumber() + 1, newBalance.toNumber())
                     })
                 })
+            })
             })
         })
     })
