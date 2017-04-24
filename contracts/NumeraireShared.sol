@@ -20,7 +20,7 @@ contract NumeraireShared {
 
     mapping (address => uint256) public balance_of;
     mapping (address => mapping (address => uint256)) public allowance_of;
-    mapping (address => mapping (uint256 => uint256)) public staked;  // Address of staker => timestamp => NMR value
+    mapping (uint256 => mapping (address => mapping (uint256 => uint256))) public staked;  // tournament number => Address of staker => timestamp of stake => NMR value
 
     // Generates a public event on the blockchain to notify clients
     event Mint(uint256 value);

@@ -42,8 +42,8 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
 
     // Release staked tokens if the predictions were successful
     // In the future this will use .send() to also send _etherValue ether to the winner
-    function releaseStake(address _staker, uint256 _timestamp, uint256 _etherValue) onlyOwner stopInEmergency returns (bool ok) {
-        var stake = staked[_staker][_timestamp];
+    function releaseStake(address _staker, uint256 _timestamp, uint256 _etherValue, uint256 _tournament) onlyOwner stopInEmergency returns (bool ok) {
+        var stake = staked[_tournament][_staker][_timestamp];
         if (stake == 0) throw;
 
         Mint(_timestamp);
@@ -51,14 +51,14 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
         Mint(block.timestamp);
         if ((_timestamp + resolution_period) > block.timestamp) throw;
 
-        if (!safeToSubtract(staked[_staker][_timestamp], stake)) throw;
+        if (!safeToSubtract(staked[_tournament][_staker][_timestamp], stake)) throw;
         if (!safeToAdd(balance_of[numerai], stake)) throw;
 
-        staked[_staker][_timestamp] -= stake;
+        staked[_tournament][_staker][_timestamp] -= stake;
         balance_of[numerai] += stake;
         if (_etherValue > 0) {
             if (!_staker.send(_etherValue)) {
-                staked[_staker][_timestamp] += stake;
+                staked[_tournament][_staker][_timestamp] += stake;
                 balance_of[numerai] -= stake;
                 return false;
             }
@@ -67,23 +67,23 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
     }
 
     // Destroy staked tokens if the predictions were not successful
-    function destroyStake(address _staker, uint256 _timestamp) onlyOwner stopInEmergency returns (bool ok) {
-        var stake = staked[_staker][_timestamp];
+    function destroyStake(address _staker, uint256 _timestamp, uint256 _tournament) onlyOwner stopInEmergency returns (bool ok) {
+        var stake = staked[_tournament][_staker][_timestamp];
         if(stake == 0) {
           throw;
         }
 
         // Reduce the total supply by the staked amount and destroy the stake.
-        if (!safeToSubtract(total_supply, staked[_staker][_timestamp])) throw;
+        if (!safeToSubtract(total_supply, staked[_tournament][_staker][_timestamp])) throw;
 
-        total_supply -= staked[_staker][_timestamp];
-        staked[_staker][_timestamp] = 0;
+        total_supply -= staked[_tournament][_staker][_timestamp];
+        staked[_tournament][_staker][_timestamp] = 0;
 
         return true;
     }
 
     // Anyone but Numerai can stake on themselves
-    function stake(uint256 _value) stopInEmergency returns (bool ok) {
+    function stake(uint256 _value, uint256 _tournament) stopInEmergency returns (bool ok) {
         // Numerai cannot stake on itself
         if (isOwner(msg.sender) || msg.sender == numerai) throw;
 
@@ -91,12 +91,12 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
         if (balance_of[msg.sender] < _value) throw;
 
         // Prevent overflows.
-        if (staked[msg.sender][block.timestamp] + _value < staked[msg.sender][block.timestamp]) throw;
-        if (!safeToAdd(staked[msg.sender][block.timestamp], _value)) throw;
+        if (staked[_tournament][msg.sender][block.timestamp] + _value < staked[_tournament][msg.sender][block.timestamp]) throw;
+        if (!safeToAdd(staked[_tournament][msg.sender][block.timestamp], _value)) throw;
         if (!safeToSubtract(balance_of[msg.sender], _value)) throw;
 
         balance_of[msg.sender] -= _value;
-        staked[msg.sender][block.timestamp] += _value;
+        staked[_tournament][msg.sender][block.timestamp] += _value;
 
         // Notify anyone listening.
         Stake(msg.sender, _value);
@@ -105,7 +105,7 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
     }
 
     // Only Numerai can stake on behalf of other accounts. _stake_owner will always be Numeari's hot wallet
-    function stakeOnBehalf(address _stake_owner, address _staker, uint256 _value) onlyOwner stopInEmergency returns (bool ok) {
+    function stakeOnBehalf(address _stake_owner, address _staker, uint256 _value, uint256 _tournament) onlyOwner stopInEmergency returns (bool ok) {
         // Numerai cannot stake on itself
         if (isOwner(_stake_owner) || _stake_owner == numerai) throw;
 
@@ -113,12 +113,12 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
         if (balance_of[_stake_owner] < _value) throw;
 
         // Prevent overflows.
-        if (staked[_staker][block.timestamp] + _value < staked[_staker][block.timestamp]) throw;
-        if (!safeToAdd(staked[_staker][block.timestamp], _value)) throw;
+        if (staked[_tournament][_staker][block.timestamp] + _value < staked[_tournament][_staker][block.timestamp]) throw;
+        if (!safeToAdd(staked[_tournament][_staker][block.timestamp], _value)) throw;
         if (!safeToSubtract(balance_of[_stake_owner], _value)) throw;
 
         balance_of[_stake_owner] -= _value;
-        staked[_staker][block.timestamp] += _value;
+        staked[_tournament][_staker][block.timestamp] += _value;
 
         // Notify anyone listening.
         Stake(_staker, _value);

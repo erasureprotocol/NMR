@@ -204,15 +204,13 @@ contract('Numeraire', function(accounts) {
         var amount = 500
         var nmr = Numeraire.deployed().then(function(instance) {
             instance.balanceOf.call(numerai_hot_wallet).then((balance) => {
-                return instance.stakeOnBehalf(numerai_hot_wallet, accounts[4], amount, {
-                    from: accounts[0]
-                }).then(function(tx_id) {
+                return instance.stakeOnBehalf(numerai_hot_wallet, accounts[4], amount, 0, {from: accounts[0]}).then(function(tx_id) {
                     var block = web3.eth.getBlock(tx_id.receipt.blockNumber)
-                    instance.stakeOf.call(accounts[4], block.timestamp).then(function(stakedAmount) {
+                    instance.stakeOf.call(accounts[4], block.timestamp, 0).then(function(stakedAmount) {
                         assert.equal(stakedAmount, amount)
                     })
                     // check if stakers balance has been reduced
-                    instance.staked.call(accounts[4], block.timestamp).then(function(stakedAmount) {
+                    instance.staked.call(0, accounts[4], block.timestamp).then(function(stakedAmount) {
                         assert.equal(stakedAmount, amount)
                     })
                     instance.balanceOf.call(numerai_hot_wallet).then((balance_after) => {
@@ -225,18 +223,18 @@ contract('Numeraire', function(accounts) {
     })
 
 
-    it('should stake NMR on behalf of non-Numerai self', (done) => {
+    it('should stake NMR as self', (done) => {
         var amount = 500
         var userAccount = accounts[2]
         var nmr = Numeraire.deployed().then(function(instance) {
             instance.balanceOf.call(userAccount).then((balance) => {
-                return instance.stake(amount, {from: userAccount}).then(function(tx_id) {
+                return instance.stake(amount, 0, {from: userAccount}).then(function(tx_id) {
                     var block = web3.eth.getBlock(tx_id.receipt.blockNumber)
-                    instance.stakeOf.call(userAccount, block.timestamp).then(function(stakedAmount) {
+                    instance.stakeOf.call(userAccount, block.timestamp, 0).then(function(stakedAmount) {
                         assert.equal(stakedAmount, amount)
                     })
                     // check if stakers balance has been reduced
-                    instance.staked.call(userAccount, block.timestamp).then(function(stakedAmount) {
+                    instance.staked.call(0, userAccount, block.timestamp).then(function(stakedAmount) {
                         assert.equal(stakedAmount, amount)
                     })
                     instance.balanceOf.call(userAccount).then((balance_after) => {
@@ -294,16 +292,16 @@ contract('Numeraire', function(accounts) {
         var amount = 500
         var nmr = Numeraire.deployed().then(function(instance) {
         web3.evm.increaseTime(1).then(() => { // Make sure the block timestamp is new
-            return instance.stakeOnBehalf(numerai_hot_wallet, accounts[5], amount, {from: accounts[0]}).then(function(tx_id) {
+            return instance.stakeOnBehalf(numerai_hot_wallet, accounts[5], amount, 0, {from: accounts[0]}).then(function(tx_id) {
                 instance.totalSupply.call().then(function(totalSupply) {
                     originalTotalSupply = totalSupply.toNumber()
                 }).then(function() {
                     var block = web3.eth.getBlock(tx_id.receipt.blockNumber)
-                    instance.destroyStake(accounts[5], block.timestamp, {from: accounts[0]}).then(function() {
+                    instance.destroyStake(accounts[5], block.timestamp, 0, 0, {from: accounts[0]}).then(function() {
                         instance.totalSupply.call().then(function(newSupply) {
                             assert.equal(originalTotalSupply - amount, newSupply.toNumber())
                         }).then(function() {
-                            instance.staked.call(accounts[5], block.timestamp).then(function(stake) {
+                            instance.staked.call(0, accounts[5], block.timestamp).then(function(stake) {
                                 assert.equal(stake.toNumber(), 0)
                                 done()
                                 })
@@ -323,20 +321,20 @@ contract('Numeraire', function(accounts) {
         var staker = accounts[6]
         Numeraire.deployed().then(function(instance) {
             var originalBalance = web3.eth.getBalance(staker)
-            return instance.stakeOnBehalf(numerai_hot_wallet, staker, amount, {from: accounts[0]}).then(function(tx_id) {
+            return instance.stakeOnBehalf(numerai_hot_wallet, staker, amount, 0, {from: accounts[0]}).then(function(tx_id) {
                 var block = web3.eth.getBlock(tx_id.receipt.blockNumber)
                 instance.balanceOf.call(instance.address).then(function(numeraiBalance) {
                     originalNumeraiBalance = numeraiBalance.toNumber()
                 })
-                instance.staked.call(staker, block.timestamp).then(function(stakeAmount) {
+                instance.staked.call(0, staker, block.timestamp).then(function(stakeAmount) {
                     stakeBeforeRelease = stakeAmount.toNumber()
                 })
                 web3.evm.increaseTime(4 * 7 * 24 * 60 * 60).then(function() {
-                    instance.releaseStake(staker, block.timestamp, 0, {from: accounts[0]}).then(function() {
+                    instance.releaseStake(staker, block.timestamp, 0, 0, {from: accounts[0]}).then(function() {
                         instance.balanceOf.call(instance.address).then(function(numeraiBalance) {
                             assert.equal(originalNumeraiBalance + amount, numeraiBalance.toNumber())
                         })
-                        instance.staked.call(staker, block.timestamp).then(function(stakeAfterRelease) {
+                        instance.staked.call(0, staker, block.timestamp).then(function(stakeAfterRelease) {
                             assert.equal(stakeBeforeRelease - amount, stakeAfterRelease.toNumber())
                             done()
                         })

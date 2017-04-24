@@ -10,9 +10,7 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
 
     address public delegateContract;
     bool contractUpgradable = true;
-    bool resolutionPeriodUpgradable = true;
     address[] public previousDelegates;
-    uint256[] public previousResolutionPeriods;
 
     string public standard = "ERC20";
     string public name = "Numeraire";
@@ -20,7 +18,6 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
     uint256 public decimals = 18;
 
     event DelegateChanged(address oldAddress, address newAddress);
-    event ResolutionPeriodChanged(uint256 oldPeriod, uint256 newPeriod);
 
     function NumeraireBackend(address[] _owners, uint256 _num_required, uint256 _initial_disbursement) StoppableShareable(_owners, _num_required) {
         total_supply = 0;
@@ -34,11 +31,6 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
     function disbaleContractUpgradability() onlyManyOwners(sha3(msg.data)) returns (bool) {
         if (!contractUpgradable) throw;
         contractUpgradable = false;
-    }
-
-    function disbaleResolutionPeriodUpgradability() onlyManyOwners(sha3(msg.data)) returns (bool) {
-        if (!resolutionPeriodUpgradable) throw;
-        resolutionPeriodUpgradable = false;
     }
 
     function changeDelegate(address _newDelegate) onlyManyOwners(sha3(msg.data)) returns (bool) {
@@ -55,38 +47,24 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
         return false;
     }
 
-    function changeResolutionPeriod(uint256 _newPeriod) onlyOwner returns (bool) {
-        if (!resolutionPeriodUpgradable) throw;
-
-        if (_newPeriod != resolution_period) {
-            previousResolutionPeriods.push(resolution_period);
-            var oldResolutionPeriod = resolution_period;
-            resolution_period = _newPeriod;
-            ResolutionPeriodChanged(oldResolutionPeriod, _newPeriod);
-            return true;
-        }
-
-        return false;
-    }
-
     function mint(uint256 _value) stopInEmergency returns (bool ok) {
         return delegateContract.delegatecall(bytes4(sha3("mint(uint256)")), _value);
     }
 
-    function stake(uint256 _value) stopInEmergency returns (bool ok) {
-        return delegateContract.delegatecall(bytes4(sha3("stake(uint256)")), _value);
+    function stake(uint256 _value, uint256 _tournament) stopInEmergency returns (bool ok) {
+        return delegateContract.delegatecall(bytes4(sha3("stake(uint256,uint256)")), _value, _tournament);
     }
 
-    function stakeOnBehalf(address _stake_owner, address _staker, uint256 _value) stopInEmergency returns (bool ok) {
-        return delegateContract.delegatecall(bytes4(sha3("stakeOnBehalf(address,address,uint256)")), _stake_owner, _staker, _value);
+    function stakeOnBehalf(address _stake_owner, address _staker, uint256 _value, uint256 _tournament) stopInEmergency returns (bool ok) {
+        return delegateContract.delegatecall(bytes4(sha3("stakeOnBehalf(address,address,uint256,uint256)")), _stake_owner, _staker, _value, _tournament);
     }
 
-    function releaseStake(address _staker, uint256 _timestamp, uint256 _etherValue) stopInEmergency returns (bool ok) {
-        return delegateContract.delegatecall(bytes4(sha3("releaseStake(address,uint256,uint256)")), _staker, _timestamp, _etherValue);
+    function releaseStake(address _staker, uint256 _timestamp, uint256 _etherValue, uint256 _tournament) stopInEmergency returns (bool ok) {
+        return delegateContract.delegatecall(bytes4(sha3("releaseStake(address,uint256,uint256,uint256)")), _staker, _timestamp, _etherValue, _tournament);
     }
 
-    function destroyStake(address _staker, uint256 _timestamp) stopInEmergency returns (bool ok) {
-        return delegateContract.delegatecall(bytes4(sha3("destroyStake(address,uint256)")), _staker, _timestamp);
+    function destroyStake(address _staker, uint256 _timestamp, uint256 _tournament) stopInEmergency returns (bool ok) {
+        return delegateContract.delegatecall(bytes4(sha3("destroyStake(address,uint256,uint256)")), _staker, _timestamp, _tournament);
     }
 
     function numeraiTransfer(address _to, uint256 _value) returns(bool ok) {
@@ -98,8 +76,8 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
     }
 
     // Lookup stake
-    function stakeOf(address _staker, uint256 _timestamp) constant returns (uint256 _staked) {
-        return staked[_staker][_timestamp];
+    function stakeOf(address _staker, uint256 _timestamp, uint256 _tournament) constant returns (uint256 _staked) {
+        return staked[_tournament][_staker][_timestamp];
     }
 
     // ERC20: Send from a contract
