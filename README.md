@@ -23,10 +23,6 @@ Authors: [Alex Mingoia](https://github.com/alexmingoia), [Joey Krug](https://git
 - Clone this repository: `git clone git@github.com:numerai/contract.git && cd contract`
 - Install dependencies: `npm install`
 
-### Lint
-- `brew install -g solium` to install solium, the Solidity linter
-- `solium --file contracts/FILE`
-
 ### Compile
 - `truffle compile`
 
