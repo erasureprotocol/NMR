@@ -13,9 +13,6 @@ Authors: [Alex Mingoia](https://github.com/alexmingoia), [Joey Krug](https://git
 - All NMR initially minted is sent to Numerai's "cold wallet"
 - The contract should be upgradable so that the maps of balances, allowances, and stakes remain unchanged but the functions called for minting, staking, releasing stakes, and destroying stakes are changed.
 - It should be possible to disable upgradability forever
-
-## Future
-We want to be able to upgrade the contract so that:
 - Any address can stake
 - Stakes are released to the address that made the stake
 - In addition to NMR, ETH can be sent to the address that made the released stake
