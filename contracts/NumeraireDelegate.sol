@@ -41,7 +41,6 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
     }
 
     // Release staked tokens if the predictions were successful
-    // In the future this will use .send() to also send _etherValue ether to the winner
     function releaseStake(address _staker, uint256 _timestamp, uint256 _etherValue, uint256 _tournament) onlyOwner stopInEmergency returns (bool ok) {
         var stake = staked[_tournament][_staker][_timestamp];
         if (stake == 0) throw;
