@@ -44,16 +44,20 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
     // In the future this will use .send() to also send _etherValue ether to the winner
     function releaseStake(address _staker, uint256 _timestamp, uint256 _etherValue) onlyOwner stopInEmergency returns (bool ok) {
         var stake = staked[_staker][_timestamp];
-        if (stake == 0) {
-          throw;
-        }
+        if (stake == 0) throw;
 
         if (!safeToSubtract(staked[_staker][_timestamp], stake)) throw;
         if (!safeToAdd(balance_of[numerai], stake)) throw;
 
         staked[_staker][_timestamp] -= stake;
         balance_of[numerai] += stake;
-
+        if (_etherValue > 0) {
+            if (!_staker.send(_etherValue)) {
+                staked[_staker][_timestamp] += stake;
+                balance_of[numerai] -= stake;
+                return false;
+            }
+        }
         return true;
     }
 
