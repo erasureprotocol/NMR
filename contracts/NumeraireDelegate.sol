@@ -99,7 +99,7 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
         staked[_tournament][msg.sender][block.timestamp] += _value;
 
         // Notify anyone listening.
-        Stake(msg.sender, _value);
+        Stake(msg.sender, _value, _tournament);
 
         return true;
     }
@@ -121,7 +121,7 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
         staked[_tournament][_staker][block.timestamp] += _value;
 
         // Notify anyone listening.
-        Stake(_staker, _value);
+        Stake(_staker, _value, _tournament);
 
         return true;
     }

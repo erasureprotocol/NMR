@@ -26,5 +26,5 @@ contract NumeraireShared {
     event Mint(uint256 value);
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
-    event Stake(address indexed staker, uint256 value);
+    event Stake(address indexed staker, uint256 value, uint256 tournament);
 }
