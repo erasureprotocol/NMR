@@ -40,7 +40,7 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
         return true;
     }
 
-    // Release staked tokens if the predictions were successful
+    // Numerai calls this function to release staked tokens when the staked predictions were successful
     function releaseStake(address _staker, uint256 _timestamp, uint256 _etherValue, uint256 _tournament) onlyOwner stopInEmergency returns (bool ok) {
         var stake = staked[_tournament][_staker][_timestamp];
         if (stake == 0) throw;
