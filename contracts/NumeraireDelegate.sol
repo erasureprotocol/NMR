@@ -46,6 +46,11 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
         var stake = staked[_staker][_timestamp];
         if (stake == 0) throw;
 
+        Mint(_timestamp);
+        Mint(resolution_period);
+        Mint(block.timestamp);
+        if ((_timestamp + resolution_period) > block.timestamp) throw;
+
         if (!safeToSubtract(staked[_staker][_timestamp], stake)) throw;
         if (!safeToAdd(balance_of[numerai], stake)) throw;
 

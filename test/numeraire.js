@@ -144,7 +144,7 @@ contract('Numeraire', function(accounts) {
                 return instance.mint(500000, {
                     from: accounts[0]
                 }).then(() => {
-                    return web3.evm.increaseTime(7 * 25 * 60 * 60).then(() => {
+                    return web3.evm.increaseTime(7 * 24 * 60 * 60).then(() => {
                         return instance.mint(20000000000, {
                             from: accounts[0]
                         }).then(() => {
@@ -331,17 +331,19 @@ contract('Numeraire', function(accounts) {
                 instance.staked.call(staker, block.timestamp).then(function(stakeAmount) {
                     stakeBeforeRelease = stakeAmount.toNumber()
                 })
-                instance.releaseStake(staker, block.timestamp, 0, {from: accounts[0]}).then(function() {
-                    instance.balanceOf.call(instance.address).then(function(numeraiBalance) {
-                        assert.equal(originalNumeraiBalance + amount, numeraiBalance.toNumber())
+                web3.evm.increaseTime(4 * 7 * 24 * 60 * 60).then(function() {
+                    instance.releaseStake(staker, block.timestamp, 0, {from: accounts[0]}).then(function() {
+                        instance.balanceOf.call(instance.address).then(function(numeraiBalance) {
+                            assert.equal(originalNumeraiBalance + amount, numeraiBalance.toNumber())
+                        })
+                        instance.staked.call(staker, block.timestamp).then(function(stakeAfterRelease) {
+                            assert.equal(stakeBeforeRelease - amount, stakeAfterRelease.toNumber())
+                            done()
+                        })
+                    }).then(function() {
+                        var newBalance = web3.eth.getBalance(staker)
+                        assert.equal(originalBalance.toNumber() + 1, newBalance.toNumber())
                     })
-                    instance.staked.call(staker, block.timestamp).then(function(stakeAfterRelease) {
-                        assert.equal(stakeBeforeRelease - amount, stakeAfterRelease.toNumber())
-                        done()
-                    })
-                }).then(function() {
-                    var newBalance = web3.eth.getBalance(staker)
-                    assert.equal(originalBalance.toNumber() + 1, newBalance.toNumber())
                 })
             })
         })
@@ -381,5 +383,6 @@ contract('Numeraire', function(accounts) {
 
 })
 
+// TODO: Test that releasing stake too early fails
 // TODO: Test that transferDeposit(1000001) throws
 // TODO: Calling mint, stake, transferNumerai, resolveStake, destroyStake from any address but the NumeraireBackend fails

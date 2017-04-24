@@ -9,8 +9,10 @@ import "contracts/NumeraireShared.sol";
 contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
 
     address public delegateContract;
-    bool upgradable = true;
+    bool contractUpgradable = true;
+    bool resolutionPeriodUpgradable = true;
     address[] public previousDelegates;
+    uint256[] public previousResolutionPeriods;
 
     string public standard = "ERC20";
     string public name = "Numeraire";
@@ -18,6 +20,7 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
     uint256 public decimals = 18;
 
     event DelegateChanged(address oldAddress, address newAddress);
+    event ResolutionPeriodChanged(uint256 oldPeriod, uint256 newPeriod);
 
     function NumeraireBackend(address[] _owners, uint256 _num_required, uint256 _initial_disbursement) StoppableShareable(_owners, _num_required) {
         total_supply = 0;
@@ -28,18 +31,38 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
         disbursement = _initial_disbursement;
     }
 
-    function disbaleUpgradability() onlyManyOwners(sha3(msg.data)) returns (bool) {
-        if (!upgradable) throw;
-        upgradable = false;
+    function disbaleContractUpgradability() onlyManyOwners(sha3(msg.data)) returns (bool) {
+        if (!contractUpgradable) throw;
+        contractUpgradable = false;
     }
 
-    function changeDelegate(address newDelegate) onlyManyOwners(sha3(msg.data)) returns (bool) {
-        if (!upgradable) throw;
+    function disbaleResolutionPeriodUpgradability() onlyManyOwners(sha3(msg.data)) returns (bool) {
+        if (!resolutionPeriodUpgradable) throw;
+        resolutionPeriodUpgradable = false;
+    }
 
-        if (newDelegate != delegateContract) {
+    function changeDelegate(address _newDelegate) onlyManyOwners(sha3(msg.data)) returns (bool) {
+        if (!contractUpgradable) throw;
+
+        if (_newDelegate != delegateContract) {
             previousDelegates.push(delegateContract);
-            delegateContract = newDelegate;
-            DelegateChanged(delegateContract, newDelegate);
+            var oldDelegate = delegateContract;
+            delegateContract = _newDelegate;
+            DelegateChanged(oldDelegate, _newDelegate);
+            return true;
+        }
+
+        return false;
+    }
+
+    function changeResolutionPeriod(uint256 _newPeriod) onlyOwner returns (bool) {
+        if (!resolutionPeriodUpgradable) throw;
+
+        if (_newPeriod != resolution_period) {
+            previousResolutionPeriods.push(resolution_period);
+            var oldResolutionPeriod = resolution_period;
+            resolution_period = _newPeriod;
+            ResolutionPeriodChanged(oldResolutionPeriod, _newPeriod);
             return true;
         }
 

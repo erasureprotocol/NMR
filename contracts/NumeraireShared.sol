@@ -12,6 +12,7 @@ contract NumeraireShared {
     uint256 public disbursement_cap = 96153846153846153846153;
 
     uint256 public disbursement_period = 1 weeks;
+    uint256 public resolution_period = 4 weeks;
     uint256 public disbursement_end_time;
 
     uint256 public disbursement;
