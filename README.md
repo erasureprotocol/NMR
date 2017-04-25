@@ -8,12 +8,13 @@ Authors: [Alex Mingoia](https://github.com/alexmingoia), [Joey Krug](https://git
 - Should require multi-sig for some functions
 - Should be able to single-sig pause the contract and multi-sig unpause the contract
 - All state-changing functions should be disabled in the paused state unless it requires multi-sig
-- Only Numerai can make stakes, release stakes, destroy stakes, and mint
-- Numerai's store of NMR is a "cold wallet": Transfers from it can occur only with multi-sig
-- All NMR initially minted is sent to Numerai's "cold wallet"
+- Only Numerai can release stakes, destroy stakes, and mint
+- Trainsfers from Numerai's store of NMR require multi-sig
+- All NMR initially minted are sent to Numerai's multi-sig
 - The contract should be upgradable so that the maps of balances, allowances, and stakes remain unchanged but the functions called for minting, staking, releasing stakes, and destroying stakes are changed.
 - It should be possible to disable upgradability forever
 - Any address can stake
+- Numerai can make a stake on behalf of addresses 0 through 1,000,000
 - Stakes are released to the address that made the stake
 - In addition to NMR, ETH can be sent to the address that made the released stake
 
