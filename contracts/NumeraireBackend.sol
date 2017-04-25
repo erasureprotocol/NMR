@@ -113,6 +113,8 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
 
     // ERC20: Send from a contract
     function transferFrom(address _from, address _to, uint256 _value) stopInEmergency returns (bool ok) {
+        if (isOwner(_from) || _from == numerai) throw; // Transfering from Numerai can only be done with the numeraiTransfer function
+
         // Check for sufficient funds.
         if (balance_of[_from] < _value) throw;
         // Prevent overflows.
