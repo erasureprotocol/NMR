@@ -95,7 +95,7 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
         return _stake(msg.sender, msg.sender, _value, _tournamentID, _roundID, _confidence);
     }
 
-    // Only Numerai can stake on behalf of other accounts. _stake_owner will always be Numeari's hot wallet
+    // Only Numerai can stake on behalf of other accounts. _stake_owner will always be Numerai's hot wallet
     function stakeOnBehalf(address _stake_owner, address _staker, uint256 _value, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) onlyOwner stopInEmergency returns (bool ok) {
         return _stake(_stake_owner, _staker, _value, _tournamentID, _roundID, _confidence);
     }

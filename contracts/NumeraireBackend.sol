@@ -28,7 +28,7 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
         disbursement = _initial_disbursement;
     }
 
-    function disbaleContractUpgradability() onlyManyOwners(sha3(msg.data)) returns (bool) {
+    function disableContractUpgradability() onlyManyOwners(sha3(msg.data)) returns (bool) {
         if (!contractUpgradable) throw;
         contractUpgradable = false;
     }
