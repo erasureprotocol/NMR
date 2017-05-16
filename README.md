@@ -23,6 +23,21 @@ Authors: [Alex Mingoia](https://github.com/alexmingoia), [Joey Krug](https://git
 ### Install
 - Clone this repository: `git clone git@github.com:numerai/contract.git && cd contract`
 - Install dependencies: `npm install`
+- Install truffle: `sudo npm install -g truffle`
+- Install testrpc: `sudo npm install -g ethereumjs-testrpc`
+- Install solc.  
+  - On Ubuntu, this is:
+    ```
+    sudo add-apt-repository ppa:ethereum/ethereum
+    sudo apt-get update
+    sudo apt-get install solc
+    ```
+  - On Mac:
+    ```
+    brew tap ethereum/ethereum
+    brew install solidity
+    ```
+
 
 ### Compile
 - `solc --bin contracts/NumeraireBackend.sol` or `truffle compile`
