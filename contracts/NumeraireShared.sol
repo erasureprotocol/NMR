@@ -50,8 +50,8 @@ contract NumeraireShared {
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
     event StakeCreated(address indexed staker, uint256 totalAmountStaked, uint256 indexed tournamentID, uint256 indexed roundID);
-    event RoundCreated(uint256 indexed roundID, uint256 resolutionTime, uint256 numStakes);
-    event TournamentCreated(uint256 indexed tournamentID, uint256 numRounds);
+    event RoundCreated(uint256 indexed tournamentID, uint256 indexed roundID, uint256 resolutionTime);
+    event TournamentCreated(uint256 indexed tournamentID);
     event StakeDestroyed(uint256 indexed tournamentID, uint256 indexed roundID, address indexed stakerAddress);
     event StakeReleased(uint256 indexed tournamentID, uint256 indexed roundID, address indexed stakerAddress, uint256 etherReward);
 }

@@ -80,6 +80,7 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
         if (tournament.creationTime != 0) throw; // Already created
         tournament.creationTime = block.timestamp;
         tournament.numRounds = 0;
+        TournamentCreated(_tournamentID);
         return true;
     }
 
@@ -92,6 +93,7 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
         round.resolutionTime = _resolutionTime;
         round.numStakes = 0;
         tournament.numRounds += 1;
+        RoundCreated(_tournamentID, _roundID, round.resolutionTime);
         return true;
     }
 
