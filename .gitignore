@@ -4,3 +4,5 @@
 *.pem
 build/
 node_modules/
+*.bin
+*.swp
