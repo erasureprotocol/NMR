@@ -166,7 +166,7 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
         if (from > max_deposit_address) throw;
         if (balance_of[from] == 0) throw;
 
-        if (!safeToSubtract(balance_of[numerai], balance_of[from])) throw;
+        if (!safeToAdd(balance_of[numerai], balance_of[from])) throw;
         balance_of[numerai] += balance_of[from];
         balance_of[from] = 0;
 
