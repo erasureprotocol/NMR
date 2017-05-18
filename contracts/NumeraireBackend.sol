@@ -108,9 +108,9 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
     }
 
     // Lookup stake
-    function getStake(uint256 _tournamentID, uint256 _roundID, address _staker) constant returns (uint256[], uint256[], uint256, uint256, bool, bool) {
+    function getStake(uint256 _tournamentID, uint256 _roundID, address _staker) constant returns (uint256[], uint256[], uint256[], uint256, uint256, bool, bool) {
         var stake = tournaments[_tournamentID].rounds[_roundID].stakes[_staker];
-        return (stake.amounts, stake.timestamps, stake.confidence, stake.amount, stake.successful, stake.resolved);
+        return (stake.amounts, stake.confidences, stake.timestamps, stake.confidence, stake.amount, stake.successful, stake.resolved);
     }
 
     // ERC20: Send from a contract

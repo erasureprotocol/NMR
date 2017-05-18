@@ -133,8 +133,9 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
         round.numStakes += 1;
         stake.amount += _value;
         balance_of[_staker] -= _value;
-        stake.timestamps.push(block.timestamp);
         stake.amounts.push(_value);
+        stake.confidences.push(stake.confidence);
+        stake.timestamps.push(block.timestamp);
 
         // Notify anyone listening.
         StakeCreated(_staker, stake.amount, _tournamentID, _roundID);
