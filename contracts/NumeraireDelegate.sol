@@ -111,6 +111,7 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
         if (tournament.creationTime <= 0) throw; // This tournament must be initialized
         if (round.creationTime <= 0) throw; // This round must be initialized
         if (round.resolutionTime <= block.timestamp) throw; // Can't stake after round ends
+        if (_value <= 0) throw; // Can't stake zero NMR
 
         // Prevent overflows.
         if (!safeToAdd(round.numStakes, 1)) throw;
