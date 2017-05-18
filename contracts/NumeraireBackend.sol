@@ -142,7 +142,6 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
         if (balance_of[msg.sender] < _value) throw;
 
         // Prevent overflows.
-        if (balance_of[_to] + _value < balance_of[_to]) throw;
         if (!safeToAdd(balance_of[_to], _value)) throw;
         if (!safeToSubtract(balance_of[msg.sender], _value)) throw;
 
