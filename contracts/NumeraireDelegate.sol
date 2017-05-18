@@ -92,22 +92,23 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
 
     // Anyone but Numerai can stake on themselves
     function stake(uint256 _value, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) stopInEmergency returns (bool ok) {
-        return _stake(msg.sender, msg.sender, _value, _tournamentID, _roundID, _confidence);
+        return _stake(msg.sender, _value, _tournamentID, _roundID, _confidence);
     }
 
     // Only Numerai can stake on behalf of other accounts. _stake_owner will always be Numerai's hot wallet
-    function stakeOnBehalf(address _stake_owner, address _staker, uint256 _value, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) onlyOwner stopInEmergency returns (bool ok) {
-        return _stake(_stake_owner, _staker, _value, _tournamentID, _roundID, _confidence);
+    function stakeOnBehalf(address _staker, uint256 _value, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) onlyOwner stopInEmergency returns (bool ok) {
+        var max_deposit_address = 1000000;
+        if (_staker > max_deposit_address) throw;
+        return _stake(_staker, _value, _tournamentID, _roundID, _confidence);
     }
 
-    function _stake(address _from, address _to, uint256 _value, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) stopInEmergency internal returns (bool ok) {
+    function _stake(address _staker, uint256 _value, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) stopInEmergency internal returns (bool ok) {
         var tournament = tournaments[_tournamentID];
         var round = tournament.rounds[_roundID];
-        var stake = round.stakes[_to];
+        var stake = round.stakes[_staker];
 
-        if (isOwner(_from) || _from == numerai) throw; // Numerai cannot stake on itself
-        if (isOwner(_to) || _to == numerai) throw;
-        if (balance_of[_from] < _value) throw; // Check for sufficient funds
+        if (isOwner(_staker) || _staker == numerai) throw; // Numerai cannot stake on itself
+        if (balance_of[_staker] < _value) throw; // Check for sufficient funds
         if (tournament.creationTime <= 0) throw; // This tournament must be initialized
         if (round.creationTime <= 0) throw; // This round must be initialized
         if (round.resolutionTime <= block.timestamp) throw; // Can't stake after round ends
@@ -116,7 +117,7 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
         // Prevent overflows.
         if (!safeToAdd(round.numStakes, 1)) throw;
         if (!safeToAdd(stake.amount, _value)) throw;
-        if (!safeToSubtract(balance_of[_from], _value)) throw;
+        if (!safeToSubtract(balance_of[_staker], _value)) throw;
 
         if (stake.confidence == 0) {
             stake.confidence = _confidence;
@@ -128,15 +129,15 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
             throw; // Confidence can only increased or set to the same, non-zero number
         }
 
-        round.stakeAddresses.push(_to);
+        round.stakeAddresses.push(_staker);
         round.numStakes += 1;
         stake.amount += _value;
-        balance_of[_from] -= _value;
+        balance_of[_staker] -= _value;
         stake.timestamps.push(block.timestamp);
         stake.amounts.push(_value);
 
         // Notify anyone listening.
-        StakeCreated(_to, stake.amount, _tournamentID, _roundID);
+        StakeCreated(_staker, stake.amount, _tournamentID, _roundID);
 
         return true;
     }
@@ -161,14 +162,20 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
 
     // Allows Numerai to withdraw on behalf of a data scientist some NMR that they've deposited into a pre-assigned address
     // Numerai will assign these addresses on its website
-    function transferDeposit(address from) onlyOwner returns(bool ok) {
+    function transferDeposit(address _from, address _to, uint256 _value) onlyOwner returns(bool ok) {
         var max_deposit_address = 1000000;
-        if (from > max_deposit_address) throw;
-        if (balance_of[from] == 0) throw;
+        if (_from > max_deposit_address) throw;
 
-        if (!safeToSubtract(balance_of[numerai], balance_of[from])) throw;
-        balance_of[numerai] += balance_of[from];
-        balance_of[from] = 0;
+        // Identical to transfer(), except msg.sender => _from
+        if (balance_of[_from] < _value) throw;
+
+        if (!safeToAdd(balance_of[_to], _value)) throw;
+        if (!safeToSubtract(balance_of[_from], _value)) throw;
+
+        balance_of[_from] -= _value;
+        balance_of[_to] += _value;
+
+        Transfer(_from, _to, _value);
 
         return true;
     }
