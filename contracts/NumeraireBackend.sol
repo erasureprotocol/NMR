@@ -71,7 +71,7 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
         return delegateContract.delegatecall(bytes4(sha3("numeraiTransfer(address,uint256)")), _to, _value);
     }
 
-    function transferDeposit(address _from, address _to, uint64 _value) returns(bool ok) {
+    function transferDeposit(address _from, address _to, uint256 _value) returns(bool ok) {
         return delegateContract.delegatecall(bytes4(sha3("transferDeposit(address,address,uint256)")), _from, _to, _value);
     }
 
