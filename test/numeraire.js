@@ -432,7 +432,7 @@ contract('Numeraire', function(accounts) {
                             instance.balanceOf.call(assignedAddress).then(function(assignedBalance) {
                                 assert.equal(amount, assignedBalance.toNumber())
                             }).then(function() {
-                                instance.transferDeposit(assignedAddress, instance.address, amount, {from: accounts[0]}).then(function() {
+                                instance.withdraw(assignedAddress, instance.address, amount, {from: accounts[0]}).then(function() {
                                     instance.balanceOf.call(instance.address).then(function(numeraiBalance) {
                                         assert.equal(originalNumeraiBalance.toNumber(), numeraiBalance.toNumber())
                                     }).then(function() {
@@ -453,5 +453,5 @@ contract('Numeraire', function(accounts) {
 })
 
 // TODO: Test that releasing stake too early fails
-// TODO: Test that transferDeposit(1000001) throws
+// TODO: Test that withdraw(1000001) throws
 // TODO: Calling mint, stake, transferNumerai, resolveStake, destroyStake from any address but the NumeraireBackend fails
