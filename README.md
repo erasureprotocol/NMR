@@ -2,7 +2,7 @@
 
 Numeraire is an [ERC20](https://github.com/ethereum/EIPs/issues/20) token used for staking in [Numerai](https://numer.ai)'s machine learning tournament to solve the stock market.  The token mechanics are described in the [whitepaper](https://numer.ai/whitepaper.pdf).
 
-Authors: [Alex Mingoia](https://github.com/alexmingoia), [Joey Krug](https://github.com/joeykrug), and [Xander Dunn](https://github.com/xanderdunn)
+Authors: [Alex Mingoia](https://github.com/alexmingoia), [Joey Krug](https://github.com/joeykrug), [Xander Dunn](https://github.com/xanderdunn), and [Philip Monk](https://github.com/philipcmonk)
 
 ## Overview
 - Should require multi-sig for some functions
