@@ -39,11 +39,27 @@ function ifUsingTestRPC() {
 var gasAmount = 3000000
 var gasPrice = 20000000000
 var initialDisbursement = new BigNumber(1500000000000000000000000)
+var nmr_per_week = new BigNumber(96153846153846100000000).add(53846153)
 
 var multiSigAddresses = ['0x54fd80d6ae7584d8e9a19fe1df43f04e5282cc43', '0xa6d135de4acf44f34e2e14a4ee619ce0a99d1e08']
 var Numeraire = artifacts.require("./NumeraireBackend.sol")
 var NumeraireDelegate = artifacts.require("./NumeraireDelegate.sol")
 var snapshotID = 0
+
+// either equal or two is a second after one.  it's okay if one second has
+// passed during the test
+function almost_equal(one, two) {
+  console.log("al: one:", one)
+  console.log("al: two:", two)
+  console.log("al: on+:", one.add(nmr_per_week.div(7 * 24 * 60 * 60)).ceil())
+  if (one.equals(two)) {
+    console.log("eq!")
+  }
+  if (two.equals(one.add(nmr_per_week.div(7 * 24 * 60 * 60)))) {
+    console.log("almost eq!")
+  }
+  return two.equals(one) || two.equals(one.add(nmr_per_week.div(7 * 24 * 60 * 60)).ceil())
+}
 
 contract('Numeraire', function(accounts) {
 
@@ -132,7 +148,7 @@ contract('Numeraire', function(accounts) {
                     from: accounts[0]
                 }).then(function() {
                     instance.getMintable.call().then(function(disbursement) {
-                        assert.equal(true, disbursement.equals(last_disbursement.sub(initialDisbursement)))
+                        assert.equal(true, almost_equal(last_disbursement.sub(initialDisbursement), disbursement))
                         done()
                     })
                 })
@@ -151,8 +167,7 @@ contract('Numeraire', function(accounts) {
                             from: accounts[0]
                         }).then(() => {
                             return instance.getMintable.call().then(newDisbursement => {
-                                assert.equal(true, oldDisbursement.sub(500000).add(96153846153846100000000).
-                                    add(53846153).sub(20000000000).equals(newDisbursement))
+                                assert.equal(true, almost_equal(oldDisbursement.sub(500000).add(nmr_per_week).sub(20000000000), newDisbursement))
                                 done()
                             })
                         })
