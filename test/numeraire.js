@@ -51,6 +51,7 @@ contract('Numeraire', function(accounts) {
         var etherAmount = new BigNumber('1000000000000000000')
         web3.eth.sendTransaction({from: accounts[0], to: multiSigAddresses[0], value: etherAmount, gasLimit: 21000, gasPrice: gasPrice})
         web3.eth.sendTransaction({from: accounts[5], to: multiSigAddresses[1], value: etherAmount, gasLimit: 21000, gasPrice: gasPrice})
+
         Numeraire.deployed().then(function(nmrInstance) {
             NumeraireDelegate.deployed().then(function(delegateInstance) {
                 nmrInstance.changeDelegate(delegateInstance.address, {from: multiSigAddresses[0]}).then(function() {
@@ -73,20 +74,21 @@ contract('Numeraire', function(accounts) {
         })
     })
 
-    it("should have set disbursement when deployed", function(done) {
+    it("should have set initial_disbursement when deployed", function(done) {
         Numeraire.deployed().then(function(nmrInstance) {
-            nmrInstance.disbursement.call().then(function(disbursement) {
+            nmrInstance.initial_disbursement.call().then(function(disbursement) {
                 assert.equal(true, disbursement.equals(initialDisbursement))
                 done()
             })
         })
     })
 
-    it("should not mint more than the disbursement", function(done) {
+    it("should not mint significantly more than the initial disbursement", function(done) {
         var prevBalance
         var nmr = Numeraire.deployed().then(function(instance) {
             prevBalance = web3.eth.getBalance(accounts[0])
-            instance.mint(initialDisbursement.add(1), {
+            // try to mint initalDisbursement + 1 NMR (should allow ~0.16 NMR/second)
+            instance.mint(initialDisbursement.add(new BigNumber(1000000000000000000)), {
                     from: accounts[0],
                     gasPrice: gasPrice,
                     gas: gasAmount
@@ -123,14 +125,14 @@ contract('Numeraire', function(accounts) {
         })
     })
 
-    it('should reduce disbursement when minting', function(done) {
+    it('should reduce mintable when minting', function(done) {
         var nmr = Numeraire.deployed().then(function(instance) {
-            return instance.disbursement.call().then(function(last_disbursement) {
-                return instance.mint(10000000000, {
+            return instance.getMintable.call().then(function(last_disbursement) {
+                return instance.mint(initialDisbursement, {
                     from: accounts[0]
                 }).then(function() {
-                    instance.disbursement.call().then(function(disbursement) {
-                        assert.equal(disbursement.toNumber(), last_disbursement.toNumber() - 10000000000)
+                    instance.getMintable.call().then(function(disbursement) {
+                        assert.equal(true, disbursement.equals(last_disbursement.sub(initialDisbursement)))
                         done()
                     })
                 })
@@ -138,9 +140,9 @@ contract('Numeraire', function(accounts) {
         })
     })
 
-    it("should reset disbursement once per week", function(done) {
+    it("should increase mintable 96153.846153846153846153 NMR per week", function(done) {
         var nmr = Numeraire.deployed().then(function(instance) {
-            return instance.disbursement.call().then(disbursement => {
+            return instance.getMintable.call().then(oldDisbursement => {
                 return instance.mint(500000, {
                     from: accounts[0]
                 }).then(() => {
@@ -148,8 +150,9 @@ contract('Numeraire', function(accounts) {
                         return instance.mint(20000000000, {
                             from: accounts[0]
                         }).then(() => {
-                            return instance.disbursement.call().then(disbursement => {
-                                assert.equal(96153846153846153846153 - 20000000000, disbursement.toNumber())
+                            return instance.getMintable.call().then(newDisbursement => {
+                                assert.equal(true, oldDisbursement.sub(500000).add(96153846153846100000000).
+                                    add(53846153).sub(20000000000).equals(newDisbursement))
                                 done()
                             })
                         })

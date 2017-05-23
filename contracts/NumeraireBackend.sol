@@ -21,11 +21,10 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
 
     function NumeraireBackend(address[] _owners, uint256 _num_required, uint256 _initial_disbursement) StoppableShareable(_owners, _num_required) {
         total_supply = 0;
+        total_minted = 0;
 
-        // The first disbursement period begins at contract initialization and can be larger than the weekly disbursement cap.
-        if (!safeToAdd(block.timestamp, disbursement_period)) throw;
-        disbursement_end_time = block.timestamp + disbursement_period;
-        disbursement = _initial_disbursement;
+        initial_disbursement = _initial_disbursement;
+        deploy_time = block.timestamp;
     }
 
     function disableContractUpgradability() onlyManyOwners(sha3(msg.data)) returns (bool) {
@@ -107,10 +106,21 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
         return (round.creationTime, round.resolutionTime, round.numStakes, round.stakeAddresses);
     }
 
-    // Lookup stake
     function getStake(uint256 _tournamentID, uint256 _roundID, address _staker) constant returns (uint256[], uint256[], uint256[], uint256, uint256, bool, bool) {
         var stake = tournaments[_tournamentID].rounds[_roundID].stakes[_staker];
         return (stake.amounts, stake.confidences, stake.timestamps, stake.confidence, stake.amount, stake.successful, stake.resolved);
+    }
+
+    // Calculate allowable disbursement (dupe in delegate)
+    function getMintable() constant returns (uint256) {
+        if (!safeToSubtract(block.timestamp, deploy_time)) throw;
+        uint256 time_delta = (block.timestamp - deploy_time);
+        if (!safeToMultiply(weekly_disbursement, time_delta)) throw;
+        uint256 incremental_allowance = (weekly_disbursement * time_delta) / 1 weeks;
+        if (!safeToAdd(initial_disbursement, incremental_allowance)) throw;
+        uint256 total_allowance = initial_disbursement + incremental_allowance;
+        if (!safeToSubtract(total_allowance, total_minted)) throw;
+        return total_allowance - total_minted;
     }
 
     // ERC20: Send from a contract

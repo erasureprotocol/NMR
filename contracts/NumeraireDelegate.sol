@@ -14,31 +14,38 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
     // All minted NMR are initially sent to Numerai, obeying both weekly and total supply caps
     function mint(uint256 _value) onlyOwner returns (bool ok) {
         // Prevent overflows.
-        if (!safeToSubtract(disbursement, _value)) throw;
         if (!safeToAdd(balance_of[numerai], _value)) throw;
         if (!safeToAdd(total_supply, _value)) throw;
+        if (!safeToAdd(total_minted, _value)) throw;
 
         // Prevent minting more than the supply cap.
-        if ((total_supply + _value) > supply_cap) throw;
-
-        // Replenish disbursement a maximum of once per week.
-        if (block.timestamp > disbursement_end_time) {
-            disbursement_end_time = block.timestamp + disbursement_period;
-            disbursement = disbursement_cap;
-        }
+        if ((total_minted + _value) > supply_cap) throw;
 
         // Prevent minting more than the disbursement.
-        if (_value > disbursement) throw;
+        if (_value > getMintable()) throw;
 
-        disbursement -= _value;
         balance_of[numerai] += _value;
         total_supply += _value;
+        total_minted += _value;
 
         // Notify anyone listening.
         Mint(_value);
 
         return true;
     }
+
+    // Calculate allowable disbursement (dupe in backend)
+    function getMintable() constant returns (uint256) {
+        if (!safeToSubtract(block.timestamp, deploy_time)) throw;
+        uint256 time_delta = (block.timestamp - deploy_time);
+        if (!safeToMultiply(weekly_disbursement, time_delta)) throw;
+        uint256 incremental_allowance = (weekly_disbursement * time_delta) / 1 weeks;
+        if (!safeToAdd(initial_disbursement, incremental_allowance)) throw;
+        uint256 total_allowance = initial_disbursement + incremental_allowance;
+        if (!safeToSubtract(total_allowance, total_minted)) throw;
+        return total_allowance - total_minted;
+    }
+
 
     // Numerai calls this function to release staked tokens when the staked predictions were successful
     function releaseStake(address _staker, uint256 _etherValue, uint256 _tournamentID, uint256 _roundID, bool _successful) onlyOwner stopInEmergency returns (bool ok) {
