@@ -46,7 +46,7 @@ contract NumeraireShared is Safe {
     event Mint(uint256 value);
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
-    event StakeCreated(address indexed staker, uint256 totalAmountStaked, uint256 indexed tournamentID, uint256 indexed roundID);
+    event StakeCreated(address indexed staker, uint256 totalAmountStaked, uint256 confidence, uint256 indexed tournamentID, uint256 indexed roundID);
     event RoundCreated(uint256 indexed tournamentID, uint256 indexed roundID, uint256 resolutionTime);
     event TournamentCreated(uint256 indexed tournamentID);
     event StakeDestroyed(uint256 indexed tournamentID, uint256 indexed roundID, address indexed stakerAddress);
