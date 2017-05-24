@@ -24,7 +24,6 @@ contract NumeraireShared is Safe {
 
     struct Tournament {
         uint256 creationTime;
-        uint256 numRounds;
         uint256[] roundIDs;
         mapping (uint256 => Round) rounds;  // roundID
     } 
@@ -32,15 +31,11 @@ contract NumeraireShared is Safe {
     struct Round {
         uint256 creationTime;
         uint256 resolutionTime;
-        uint256 numStakes;
         address[] stakeAddresses;
         mapping (address => Stake) stakes;  // address of staker
     }
 
     struct Stake {
-        uint256[] amounts;
-        uint256[] confidences;
-        uint256[] timestamps;
         uint256 amount; // Once the stake is resolved, this becomes 0
         uint256 confidence;
         bool successful;

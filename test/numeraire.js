@@ -49,15 +49,6 @@ var snapshotID = 0
 // either equal or two is a second after one.  it's okay if one second has
 // passed during the test
 function almost_equal(one, two) {
-  console.log("al: one:", one)
-  console.log("al: two:", two)
-  console.log("al: on+:", one.add(nmr_per_week.div(7 * 24 * 60 * 60)).ceil())
-  if (one.equals(two)) {
-    console.log("eq!")
-  }
-  if (two.equals(one.add(nmr_per_week.div(7 * 24 * 60 * 60)))) {
-    console.log("almost eq!")
-  }
   return two.equals(one) || two.equals(one.add(nmr_per_week.div(7 * 24 * 60 * 60)).ceil())
 }
 
@@ -223,8 +214,8 @@ contract('Numeraire', function(accounts) {
                 var block = web3.eth.getBlock(transaction.receipt.blockNumber)
                 return instance.getTournament.call(0).then(function(tournament) {
                     creationTime = tournament[0]
-                    numRounds = tournament[1]
-                    assert.equal(0, numRounds.toNumber())
+                    numRounds = tournament[1].length
+                    assert.equal(0, numRounds)
                     assert.equal(block.timestamp, creationTime.toNumber())
                     done()
                 })
@@ -242,14 +233,14 @@ contract('Numeraire', function(accounts) {
                     return instance.getRound.call(0, 51).then(function(round) {
                         creationTime = round[0]
                         realResolutionTime = round[1]
-                        numStakes = round[2]
+                        numStakes = round[2].length
                         assert.equal(creationTime.toNumber(), block.timestamp)
                         assert.equal(realResolutionTime.toNumber(), resolutionTime)
-                        assert.equal(numStakes.toNumber(), 0)
+                        assert.equal(numStakes, 0)
                         instance.getTournament.call(0).then(function(tournament) {
-                            numRounds = tournament[1]
-                            roundIDs = tournament[2]
-                            assert.equal(1, numRounds.toNumber())
+                            numRounds = tournament[1].length
+                            roundIDs = tournament[1]
+                            assert.equal(1, numRounds)
                             // FIXME: This test doesn't work, although the contract is doing the right thing
                             // assert.equal(roundIDs, [51]) 
                             done()
@@ -270,10 +261,10 @@ contract('Numeraire', function(accounts) {
                     return instance.stakeOnBehalf(user_account, amount, 0, 51, 5, {from: accounts[0]}).then(function(tx_id) {
                         var block = web3.eth.getBlock(tx_id.receipt.blockNumber)
                         instance.getStake.call(0, 51, user_account, block.timestamp, 0).then(function(stake) {
-                            assert.equal(stake[3].toNumber(), 5)
-                            assert.equal(stake[4].toNumber(), amount)
-                            assert.equal(stake[5], false)
-                            assert.equal(stake[6], false)
+                            assert.equal(stake[0].toNumber(), 5)
+                            assert.equal(stake[1].toNumber(), amount)
+                            assert.equal(stake[2], false)
+                            assert.equal(stake[3], false)
                         }).then(function() {
                             instance.balanceOf.call(numerai_hot_wallet).then((balance_after) => {
                                 assert.equal(balance.toNumber() - amount, balance_after.toNumber())
@@ -295,10 +286,10 @@ contract('Numeraire', function(accounts) {
                 return instance.stake(amount, 0, 51, 1, {from: userAccount}).then(function(tx_id) {
                     var block = web3.eth.getBlock(tx_id.receipt.blockNumber)
                     instance.getStake.call(0, 51, userAccount).then(function(stake) {
-                        assert.equal(stake[3].toNumber(), 1)
-                        assert.equal(stake[4].toNumber(), amount)
-                        assert.equal(stake[5], false)
-                        assert.equal(stake[6], false)
+                        assert.equal(stake[0].toNumber(), 1)
+                        assert.equal(stake[1].toNumber(), amount)
+                        assert.equal(stake[2], false)
+                        assert.equal(stake[3], false)
                     })
                     instance.balanceOf.call(userAccount).then((balance_after) => {
                         assert.equal(balance.toNumber() - amount, balance_after.toNumber())
@@ -367,10 +358,10 @@ contract('Numeraire', function(accounts) {
                                 instance.totalSupply.call().then(function(newSupply) {
                                     assert.equal(originalTotalSupply - amount, newSupply.toNumber())
                                     instance.getStake.call(0, 51, user_account).then(function(stake) {
-                                        assert.equal(stake[3].toNumber(), 6)
-                                        assert.equal(stake[4].toNumber(), 0)
-                                        assert.equal(stake[5], false)
-                                        assert.equal(stake[6], true)
+                                        assert.equal(stake[0].toNumber(), 6)
+                                        assert.equal(stake[1].toNumber(), 0)
+                                        assert.equal(stake[2], false)
+                                        assert.equal(stake[3], true)
                                         done()
                                         })
                                     })
@@ -405,7 +396,7 @@ contract('Numeraire', function(accounts) {
                                 originalNumeraiBalance = numeraiBalance.toNumber()
                                 instance.balanceOf.call(staker).then(function(originalStakerBalance) {
                                     instance.getStake.call(tournamentID, roundID, staker).then(function(stake) {
-                                        stakeBeforeRelease = stake[4].toNumber()
+                                        stakeBeforeRelease = stake[1].toNumber()
                                         web3.evm.increaseTime(4 * 7 * 24 * 60 * 60).then(function() {
                                             instance.releaseStake(staker, 0, tournamentID, roundID, true, {from: accounts[0]}).then(function() {
                                                 instance.balanceOf.call(instance.address).then(function(numeraiBalance) {
@@ -413,10 +404,10 @@ contract('Numeraire', function(accounts) {
                                                     instance.balanceOf.call(staker).then(function(newStakerBalance) {
                                                         assert.equal(newStakerBalance.toNumber(), originalStakerBalance.toNumber() + amount)
                                                         instance.getStake.call(tournamentID, roundID, staker).then(function(stakeAfterRelease) {
-                                                            assert.equal(stakeAfterRelease[3], 7)
-                                                            assert.equal(stakeBeforeRelease - amount, stakeAfterRelease[4].toNumber())
-                                                            assert.equal(stakeAfterRelease[5], true)
-                                                            assert.equal(stakeAfterRelease[6], true)
+                                                            assert.equal(stakeAfterRelease[0], 7)
+                                                            assert.equal(stakeBeforeRelease - amount, stakeAfterRelease[1].toNumber())
+                                                            assert.equal(stakeAfterRelease[2], true)
+                                                            assert.equal(stakeAfterRelease[3], true)
                                                             var newBalance = web3.eth.getBalance(staker)
                                                             assert.equal(originalBalance.toNumber(), newBalance.toNumber())
                                                             done()
@@ -467,9 +458,4 @@ contract('Numeraire', function(accounts) {
             })
         })
     })
-
 })
-
-// TODO: Test that releasing stake too early fails
-// TODO: Test that withdraw(1000001) throws
-// TODO: Calling mint, stake, transferNumerai, resolveStake, destroyStake from any address but the NumeraireBackend fails
