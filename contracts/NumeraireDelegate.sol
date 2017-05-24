@@ -121,7 +121,10 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Numerai
             throw; // Confidence can only increased or set to the same, non-zero number
         }
 
-        round.stakeAddresses.push(_staker);
+        if (stake.amount <= 0) {
+            round.stakeAddresses.push(_staker);
+        }
+
         stake.amount += _value;
         balance_of[_staker] -= _value;
 
