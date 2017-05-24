@@ -2,11 +2,10 @@ pragma solidity ^0.4.8;
 
 import "contracts/StoppableShareable.sol";
 import "contracts/DestructibleShareable.sol";
-import "contracts/Safe.sol";
 import "contracts/NumeraireShared.sol";
 
 // Whoever creates the contract has the power to stop it, this person can be changed via transferOwnership(_new_address)
-contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, NumeraireShared {
+contract NumeraireDelegate is StoppableShareable, DestructibleShareable, NumeraireShared {
 
     function NumeraireDelegate(address[] _owners, uint256 _num_required) StoppableShareable(_owners, _num_required) DestructibleShareable(_owners, _num_required) {
     }
@@ -33,19 +32,6 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
 
         return true;
     }
-
-    // Calculate allowable disbursement (dupe in backend)
-    function getMintable() constant returns (uint256) {
-        if (!safeToSubtract(block.timestamp, deploy_time)) throw;
-        uint256 time_delta = (block.timestamp - deploy_time);
-        if (!safeToMultiply(weekly_disbursement, time_delta)) throw;
-        uint256 incremental_allowance = (weekly_disbursement * time_delta) / 1 weeks;
-        if (!safeToAdd(initial_disbursement, incremental_allowance)) throw;
-        uint256 total_allowance = initial_disbursement + incremental_allowance;
-        if (!safeToSubtract(total_allowance, total_minted)) throw;
-        return total_allowance - total_minted;
-    }
-
 
     // Numerai calls this function to release staked tokens when the staked predictions were successful
     function releaseStake(address _staker, uint256 _etherValue, uint256 _tournamentID, uint256 _roundID, bool _successful) onlyOwner stopInEmergency returns (bool ok) {
@@ -122,7 +108,6 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
         if (_value <= 0) throw; // Can't stake zero NMR
 
         // Prevent overflows.
-        if (!safeToAdd(round.numStakes, 1)) throw;
         if (!safeToAdd(stake.amount, _value)) throw;
         if (!safeToSubtract(balance_of[_staker], _value)) throw;
 
@@ -140,12 +125,8 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
             round.stakeAddresses.push(_staker);
         }
 
-        round.numStakes += 1;
         stake.amount += _value;
         balance_of[_staker] -= _value;
-        stake.amounts.push(_value);
-        stake.confidences.push(stake.confidence);
-        stake.timestamps.push(block.timestamp);
 
         // Notify anyone listening.
         StakeCreated(_staker, stake.amount, _tournamentID, _roundID);
@@ -190,5 +171,4 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
 
         return true;
     }
-
 }
