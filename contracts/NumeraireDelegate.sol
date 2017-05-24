@@ -2,11 +2,10 @@ pragma solidity ^0.4.8;
 
 import "contracts/StoppableShareable.sol";
 import "contracts/DestructibleShareable.sol";
-import "contracts/Safe.sol";
 import "contracts/NumeraireShared.sol";
 
 // Whoever creates the contract has the power to stop it, this person can be changed via transferOwnership(_new_address)
-contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, NumeraireShared {
+contract NumeraireDelegate is StoppableShareable, DestructibleShareable, NumeraireShared {
 
     function NumeraireDelegate(address[] _owners, uint256 _num_required) StoppableShareable(_owners, _num_required) DestructibleShareable(_owners, _num_required) {
     }
@@ -14,25 +13,19 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
     // All minted NMR are initially sent to Numerai, obeying both weekly and total supply caps
     function mint(uint256 _value) onlyOwner returns (bool ok) {
         // Prevent overflows.
-        if (!safeToSubtract(disbursement, _value)) throw;
         if (!safeToAdd(balance_of[numerai], _value)) throw;
         if (!safeToAdd(total_supply, _value)) throw;
+        if (!safeToAdd(total_minted, _value)) throw;
 
         // Prevent minting more than the supply cap.
-        if ((total_supply + _value) > supply_cap) throw;
-
-        // Replenish disbursement a maximum of once per week.
-        if (block.timestamp > disbursement_end_time) {
-            disbursement_end_time = block.timestamp + disbursement_period;
-            disbursement = disbursement_cap;
-        }
+        if ((total_minted + _value) > supply_cap) throw;
 
         // Prevent minting more than the disbursement.
-        if (_value > disbursement) throw;
+        if (_value > getMintable()) throw;
 
-        disbursement -= _value;
         balance_of[numerai] += _value;
         total_supply += _value;
+        total_minted += _value;
 
         // Notify anyone listening.
         Mint(_value);

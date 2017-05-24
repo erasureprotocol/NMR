@@ -3,10 +3,9 @@ pragma solidity ^0.4.8;
 // This is the contract that will be unchangeable once deployed.  It will call delegate functions in another contract to change state.  The delegate contract is upgradable.
 
 import "contracts/StoppableShareable.sol";
-import "contracts/Safe.sol";
 import "contracts/NumeraireShared.sol";
 
-contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
+contract NumeraireBackend is StoppableShareable, NumeraireShared {
 
     address public delegateContract;
     bool contractUpgradable = true;
@@ -21,11 +20,10 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
 
     function NumeraireBackend(address[] _owners, uint256 _num_required, uint256 _initial_disbursement) StoppableShareable(_owners, _num_required) {
         total_supply = 0;
+        total_minted = 0;
 
-        // The first disbursement period begins at contract initialization and can be larger than the weekly disbursement cap.
-        if (!safeToAdd(block.timestamp, disbursement_period)) throw;
-        disbursement_end_time = block.timestamp + disbursement_period;
-        disbursement = _initial_disbursement;
+        initial_disbursement = _initial_disbursement;
+        deploy_time = block.timestamp;
     }
 
     function disableContractUpgradability() onlyManyOwners(sha3(msg.data)) returns (bool) {
@@ -107,7 +105,6 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
         return (round.creationTime, round.resolutionTime, round.numStakes, round.stakeAddresses);
     }
 
-    // Lookup stake
     function getStake(uint256 _tournamentID, uint256 _roundID, address _staker) constant returns (uint256[], uint256[], uint256[], uint256, uint256, bool, bool) {
         var stake = tournaments[_tournamentID].rounds[_roundID].stakes[_staker];
         return (stake.amounts, stake.confidences, stake.timestamps, stake.confidence, stake.amount, stake.successful, stake.resolved);
