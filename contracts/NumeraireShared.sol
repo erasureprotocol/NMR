@@ -1,9 +1,10 @@
 pragma solidity ^0.4.8;
 
+import "contracts/Safe.sol";
 
 // Class variables used both in NumeraireBackend and NumeraireDelegate
 
-contract NumeraireShared {
+contract NumeraireShared is Safe {
 
     address public numerai = this;
 
@@ -50,4 +51,17 @@ contract NumeraireShared {
     event TournamentCreated(uint256 indexed tournamentID);
     event StakeDestroyed(uint256 indexed tournamentID, uint256 indexed roundID, address indexed stakerAddress);
     event StakeReleased(uint256 indexed tournamentID, uint256 indexed roundID, address indexed stakerAddress, uint256 etherReward);
+
+    // Calculate allowable disbursement
+    function getMintable() constant returns (uint256) {
+        if (!safeToSubtract(block.timestamp, deploy_time)) throw;
+        uint256 time_delta = (block.timestamp - deploy_time);
+        if (!safeToMultiply(weekly_disbursement, time_delta)) throw;
+        uint256 incremental_allowance = (weekly_disbursement * time_delta) / 1 weeks;
+        if (!safeToAdd(initial_disbursement, incremental_allowance)) throw;
+        uint256 total_allowance = initial_disbursement + incremental_allowance;
+        if (!safeToSubtract(total_allowance, total_minted)) throw;
+        return total_allowance - total_minted;
+    }
+
 }

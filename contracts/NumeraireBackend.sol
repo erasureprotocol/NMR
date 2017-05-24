@@ -3,10 +3,9 @@ pragma solidity ^0.4.8;
 // This is the contract that will be unchangeable once deployed.  It will call delegate functions in another contract to change state.  The delegate contract is upgradable.
 
 import "contracts/StoppableShareable.sol";
-import "contracts/Safe.sol";
 import "contracts/NumeraireShared.sol";
 
-contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
+contract NumeraireBackend is StoppableShareable, NumeraireShared {
 
     address public delegateContract;
     bool contractUpgradable = true;
@@ -106,18 +105,6 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
     function getStake(uint256 _tournamentID, uint256 _roundID, address _staker) constant returns (uint256, uint256, bool, bool) {
         var stake = tournaments[_tournamentID].rounds[_roundID].stakes[_staker];
         return (stake.confidence, stake.amount, stake.successful, stake.resolved);
-    }
-
-    // Calculate allowable disbursement (dupe in delegate)
-    function getMintable() constant returns (uint256) {
-        if (!safeToSubtract(block.timestamp, deploy_time)) throw;
-        uint256 time_delta = (block.timestamp - deploy_time);
-        if (!safeToMultiply(weekly_disbursement, time_delta)) throw;
-        uint256 incremental_allowance = (weekly_disbursement * time_delta) / 1 weeks;
-        if (!safeToAdd(initial_disbursement, incremental_allowance)) throw;
-        uint256 total_allowance = initial_disbursement + incremental_allowance;
-        if (!safeToSubtract(total_allowance, total_minted)) throw;
-        return total_allowance - total_minted;
     }
 
     // ERC20: Send from a contract
