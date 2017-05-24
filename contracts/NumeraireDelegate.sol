@@ -122,7 +122,6 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
         if (_value <= 0) throw; // Can't stake zero NMR
 
         // Prevent overflows.
-        if (!safeToAdd(round.numStakes, 1)) throw;
         if (!safeToAdd(stake.amount, _value)) throw;
         if (!safeToSubtract(balance_of[_staker], _value)) throw;
 
@@ -137,12 +136,8 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
         }
 
         round.stakeAddresses.push(_staker);
-        round.numStakes += 1;
         stake.amount += _value;
         balance_of[_staker] -= _value;
-        stake.amounts.push(_value);
-        stake.confidences.push(stake.confidence);
-        stake.timestamps.push(block.timestamp);
 
         // Notify anyone listening.
         StakeCreated(_staker, stake.amount, _tournamentID, _roundID);
@@ -187,5 +182,4 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Safe, N
 
         return true;
     }
-
 }

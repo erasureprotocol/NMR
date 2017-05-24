@@ -78,7 +78,6 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
         var tournament = tournaments[_tournamentID];
         if (tournament.creationTime != 0) throw; // Already created
         tournament.creationTime = block.timestamp;
-        tournament.numRounds = 0;
         TournamentCreated(_tournamentID);
         return true;
     }
@@ -90,25 +89,23 @@ contract NumeraireBackend is StoppableShareable, Safe, NumeraireShared {
         tournament.roundIDs.push(_roundID);
         round.creationTime = block.timestamp;
         round.resolutionTime = _resolutionTime;
-        round.numStakes = 0;
-        tournament.numRounds += 1;
         RoundCreated(_tournamentID, _roundID, round.resolutionTime);
         return true;
     }
 
-    function getTournament(uint256 _tournamentID) constant returns (uint256, uint256, uint256[]) {
+    function getTournament(uint256 _tournamentID) constant returns (uint256, uint256[]) {
         var tournament = tournaments[_tournamentID];
-        return (tournament.creationTime, tournament.numRounds, tournament.roundIDs);
+        return (tournament.creationTime, tournament.roundIDs);
     }
 
-    function getRound(uint256 _tournamentID, uint256 _roundID) constant returns (uint256, uint256, uint256, address[]) {
+    function getRound(uint256 _tournamentID, uint256 _roundID) constant returns (uint256, uint256, address[]) {
         var round = tournaments[_tournamentID].rounds[_roundID];
-        return (round.creationTime, round.resolutionTime, round.numStakes, round.stakeAddresses);
+        return (round.creationTime, round.resolutionTime, round.stakeAddresses);
     }
 
-    function getStake(uint256 _tournamentID, uint256 _roundID, address _staker) constant returns (uint256[], uint256[], uint256[], uint256, uint256, bool, bool) {
+    function getStake(uint256 _tournamentID, uint256 _roundID, address _staker) constant returns (uint256, uint256, bool, bool) {
         var stake = tournaments[_tournamentID].rounds[_roundID].stakes[_staker];
-        return (stake.amounts, stake.confidences, stake.timestamps, stake.confidence, stake.amount, stake.successful, stake.resolved);
+        return (stake.confidence, stake.amount, stake.successful, stake.resolved);
     }
 
     // Calculate allowable disbursement (dupe in delegate)
