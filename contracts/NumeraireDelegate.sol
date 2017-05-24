@@ -129,7 +129,7 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Numerai
         balance_of[_staker] -= _value;
 
         // Notify anyone listening.
-        StakeCreated(_staker, stake.amount, stake.confidence, _tournamentID, _roundID);
+        Staked(_staker, stake.amount, stake.confidence, _tournamentID, _roundID);
 
         return true;
     }
