@@ -1,4 +1,4 @@
-pragma solidity ^0.4.8;
+pragma solidity ^0.4.11;
 
 import "contracts/StoppableShareable.sol";
 import "contracts/DestructibleShareable.sol";
@@ -13,15 +13,15 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Numerai
     // All minted NMR are initially sent to Numerai, obeying both weekly and total supply caps
     function mint(uint256 _value) onlyOwner returns (bool ok) {
         // Prevent overflows.
-        if (!safeToAdd(balance_of[numerai], _value)) throw;
-        if (!safeToAdd(total_supply, _value)) throw;
-        if (!safeToAdd(total_minted, _value)) throw;
+        assert(safeToAdd(balance_of[numerai], _value));
+        assert(safeToAdd(total_supply, _value));
+        assert(safeToAdd(total_minted, _value));
 
         // Prevent minting more than the supply cap.
-        if ((total_minted + _value) > supply_cap) throw;
+        require((total_minted + _value) <= supply_cap);
 
         // Prevent minting more than the disbursement.
-        if (_value > getMintable()) throw;
+        require(_value <= getMintable());
 
         balance_of[numerai] += _value;
         total_supply += _value;
@@ -39,10 +39,10 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Numerai
         var stake = round.stakes[_staker];
         var originalStakeAmount = stake.amount;
 
-        if (stake.amount <= 0) throw;
-        if (stake.resolved) throw;
-        if (round.resolutionTime > block.timestamp) throw;
-        if (!safeToAdd(balance_of[numerai], stake.amount)) throw;
+        require(stake.amount > 0);
+        require(!stake.resolved);
+        require(round.resolutionTime <= block.timestamp);
+        assert(safeToAdd(balance_of[numerai], stake.amount));
 
         stake.amount = 0;
         balance_of[_staker] += originalStakeAmount;
@@ -69,10 +69,10 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Numerai
         var stake = round.stakes[_staker];
         var originalStakeAmount = stake.amount;
 
-        if (stake.amount <= 0) throw;
-        if (stake.resolved) throw;
-        if (round.resolutionTime > block.timestamp) throw;
-        if (!safeToSubtract(total_supply, stake.amount)) throw;
+        require(stake.amount > 0);
+        require(!stake.resolved);
+        require(round.resolutionTime <= block.timestamp);
+        assert(safeToSubtract(total_supply, stake.amount));
 
         stake.amount = 0;
         total_supply -= originalStakeAmount;
@@ -91,7 +91,7 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Numerai
     // Only Numerai can stake on behalf of other accounts. _stake_owner will always be Numerai's hot wallet
     function stakeOnBehalf(address _staker, uint256 _value, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) onlyOwner stopInEmergency returns (bool ok) {
         var max_deposit_address = 1000000;
-        if (_staker > max_deposit_address) throw;
+        require(_staker <= max_deposit_address);
         return _stake(_staker, _value, _tournamentID, _roundID, _confidence);
     }
 
@@ -100,16 +100,16 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Numerai
         var round = tournament.rounds[_roundID];
         var stake = round.stakes[_staker];
 
-        if (isOwner(_staker) || _staker == numerai) throw; // Numerai cannot stake on itself
-        if (balance_of[_staker] < _value) throw; // Check for sufficient funds
-        if (tournament.creationTime <= 0) throw; // This tournament must be initialized
-        if (round.creationTime <= 0) throw; // This round must be initialized
-        if (round.resolutionTime <= block.timestamp) throw; // Can't stake after round ends
-        if (_value <= 0) throw; // Can't stake zero NMR
+        require(!isOwner(_staker) && _staker != numerai); // Numerai cannot stake on itself
+        require(balance_of[_staker] >= _value); // Check for sufficient funds
+        require(tournament.creationTime > 0); // This tournament must be initialized
+        require(round.creationTime > 0); // This round must be initialized
+        require(round.resolutionTime > block.timestamp); // Can't stake after round ends
+        require(_value > 0); // Can't stake zero NMR
 
         // Prevent overflows.
-        if (!safeToAdd(stake.amount, _value)) throw;
-        if (!safeToSubtract(balance_of[_staker], _value)) throw;
+        assert(safeToAdd(stake.amount, _value));
+        assert(safeToSubtract(balance_of[_staker], _value));
 
         if (stake.confidence == 0) {
             stake.confidence = _confidence;
@@ -118,7 +118,7 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Numerai
             stake.confidence = _confidence;
         }
         else {
-            throw; // Confidence can only increased or set to the same, non-zero number
+            revert(); // Confidence can only increased or set to the same, non-zero number
         }
 
         if (stake.amount <= 0) {
@@ -137,11 +137,11 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Numerai
     // Transfer NMR from Numerai account using multisig
     function numeraiTransfer(address _to, uint256 _value) onlyManyOwners(sha3(msg.data)) returns (bool ok) {
         // Check for sufficient funds.
-        if (balance_of[numerai] < _value) throw;
+        require(balance_of[numerai] >= _value);
 
         // Prevent overflows.
-        if (!safeToAdd(balance_of[_to], _value)) throw;
-        if (!safeToSubtract(balance_of[numerai], _value)) throw;
+        assert(safeToSubtract(balance_of[numerai], _value));
+        assert(safeToAdd(balance_of[_to], _value));
 
         balance_of[numerai] -= _value;
         balance_of[_to] += _value;
@@ -156,13 +156,13 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Numerai
     // Numerai will assign these addresses on its website
     function withdraw(address _from, address _to, uint256 _value) onlyOwner returns(bool ok) {
         var max_deposit_address = 1000000;
-        if (_from > max_deposit_address) throw;
+        require(_from <= max_deposit_address);
 
         // Identical to transfer(), except msg.sender => _from
-        if (balance_of[_from] < _value) throw;
+        require(balance_of[_from] >= _value);
 
-        if (!safeToAdd(balance_of[_to], _value)) throw;
-        if (!safeToSubtract(balance_of[_from], _value)) throw;
+        assert(safeToSubtract(balance_of[_from], _value));
+        assert(safeToAdd(balance_of[_to], _value));
 
         balance_of[_from] -= _value;
         balance_of[_to] += _value;

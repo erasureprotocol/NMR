@@ -1,4 +1,4 @@
-pragma solidity ^0.4.8;
+pragma solidity ^0.4.11;
 
 import "contracts/Safe.sol";
 
@@ -9,7 +9,7 @@ contract NumeraireShared is Safe {
     address public numerai = this;
 
     // Cap the total supply and the weekly supply
-    uint256 public supply_cap = 21000000000000000000000000; // 21 million
+    uint256 public supply_cap = 21000000e18; // 21 million
     uint256 public weekly_disbursement = 96153846153846153846153;
 
     uint256 public initial_disbursement;
@@ -54,13 +54,13 @@ contract NumeraireShared is Safe {
 
     // Calculate allowable disbursement
     function getMintable() constant returns (uint256) {
-        if (!safeToSubtract(block.timestamp, deploy_time)) throw;
+        assert(safeToSubtract(block.timestamp, deploy_time));
         uint256 time_delta = (block.timestamp - deploy_time);
-        if (!safeToMultiply(weekly_disbursement, time_delta)) throw;
+        assert(safeToMultiply(weekly_disbursement, time_delta));
         uint256 incremental_allowance = (weekly_disbursement * time_delta) / 1 weeks;
-        if (!safeToAdd(initial_disbursement, incremental_allowance)) throw;
+        assert(safeToAdd(initial_disbursement, incremental_allowance));
         uint256 total_allowance = initial_disbursement + incremental_allowance;
-        if (!safeToSubtract(total_allowance, total_minted)) throw;
+        assert(safeToSubtract(total_allowance, total_minted));
         return total_allowance - total_minted;
     }
 
