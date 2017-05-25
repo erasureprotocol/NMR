@@ -83,6 +83,7 @@ contract Shareable {
       owners[2 + i] = uint(_owners[i]);
       ownerIndex[uint(_owners[i])] = 2 + i;
     }
+    if (required > owners.length) throw;
     required = _required;
   }
 
@@ -95,6 +96,7 @@ contract Shareable {
       owners[1 + i] = uint(_owners[i]);
       ownerIndex[uint(_owners[i])] = 1 + i;
     }
+    if (required > owners.length) throw;
     required = _required;
   }
 
