@@ -107,6 +107,13 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
         return (stake.confidence, stake.amount, stake.successful, stake.resolved);
     }
 
+    function changeApproval(address _spender, uint256 _oldValue, uint256 _newValue) stopInEmergency returns (bool ok) {
+        if (allowance_of[msg.sender][_spender] != _oldValue) throw;
+        allowance_of[msg.sender][_spender] = _newValue;
+        Approval(msg.sender, _spender, _newValue);
+        return true;
+    }
+
     // ERC20: Send from a contract
     function transferFrom(address _from, address _to, uint256 _value) stopInEmergency returns (bool ok) {
         if (isOwner(_from) || _from == numerai) throw; // Transfering from Numerai can only be done with the numeraiTransfer function
@@ -150,6 +157,7 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
 
     // ERC20: Allow other contracts to spend on sender's behalf
     function approve(address _spender, uint256 _value) stopInEmergency returns (bool ok) {
+        if ((_value != 0) && (allowance_of[msg.sender][_spender] != 0)) throw;
         allowance_of[msg.sender][_spender] = _value;
         Approval(msg.sender, _spender, _value);
         return true;
