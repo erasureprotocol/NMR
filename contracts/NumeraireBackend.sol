@@ -53,23 +53,23 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
         return delegateContract.delegatecall(bytes4(sha3("stake(uint256,uint256,uint256,uint256)")), _value, _tournamentID, _roundID, _confidence);
     }
 
-    function stakeOnBehalf(address _staker, uint256 _value, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) stopInEmergency returns (bool ok) {
+    function stakeOnBehalf(address _staker, uint256 _value, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) stopInEmergency onlyPayloadSize(5) returns (bool ok) {
         return delegateContract.delegatecall(bytes4(sha3("stakeOnBehalf(address,uint256,uint256,uint256,uint256)")), _staker, _value, _tournamentID, _roundID, _confidence);
     }
 
-    function releaseStake(address _staker, uint256 _etherValue, uint256 _tournamentID, uint256 _roundID, bool _successful) stopInEmergency returns (bool ok) {
+    function releaseStake(address _staker, uint256 _etherValue, uint256 _tournamentID, uint256 _roundID, bool _successful) stopInEmergency onlyPayloadSize(5) returns (bool ok) {
         return delegateContract.delegatecall(bytes4(sha3("releaseStake(address,uint256,uint256,uint256,bool)")), _staker, _etherValue, _tournamentID, _roundID, _successful);
     }
 
-    function destroyStake(address _staker, uint256 _tournamentID, uint256 _roundID) stopInEmergency returns (bool ok) {
+    function destroyStake(address _staker, uint256 _tournamentID, uint256 _roundID) stopInEmergency onlyPayloadSize(3) returns (bool ok) {
         return delegateContract.delegatecall(bytes4(sha3("destroyStake(address,uint256,uint256)")), _staker, _tournamentID, _roundID);
     }
 
-    function numeraiTransfer(address _to, uint256 _value) returns(bool ok) {
+    function numeraiTransfer(address _to, uint256 _value) onlyPayloadSize(2) returns(bool ok) {
         return delegateContract.delegatecall(bytes4(sha3("numeraiTransfer(address,uint256)")), _to, _value);
     }
 
-    function withdraw(address _from, address _to, uint256 _value) returns(bool ok) {
+    function withdraw(address _from, address _to, uint256 _value) onlyPayloadSize(3) returns(bool ok) {
         return delegateContract.delegatecall(bytes4(sha3("withdraw(address,address,uint256)")), _from, _to, _value);
     }
 
@@ -107,7 +107,7 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
         return (stake.confidence, stake.amount, stake.successful, stake.resolved);
     }
 
-    function changeApproval(address _spender, uint256 _oldValue, uint256 _newValue) stopInEmergency returns (bool ok) {
+    function changeApproval(address _spender, uint256 _oldValue, uint256 _newValue) stopInEmergency onlyPayloadSize(3) returns (bool ok) {
         if (allowance_of[msg.sender][_spender] != _oldValue) throw;
         allowance_of[msg.sender][_spender] = _newValue;
         Approval(msg.sender, _spender, _newValue);
@@ -115,7 +115,7 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
     }
 
     // ERC20: Send from a contract
-    function transferFrom(address _from, address _to, uint256 _value) stopInEmergency returns (bool ok) {
+    function transferFrom(address _from, address _to, uint256 _value) stopInEmergency onlyPayloadSize(3) returns (bool ok) {
         if (isOwner(_from) || _from == numerai) throw; // Transfering from Numerai can only be done with the numeraiTransfer function
 
         // Check for sufficient funds.
@@ -138,7 +138,7 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
     }
 
     // ERC20: Anyone with NMR can transfer NMR
-    function transfer(address _to, uint256 _value) stopInEmergency returns (bool ok) {
+    function transfer(address _to, uint256 _value) stopInEmergency onlyPayloadSize(2) returns (bool ok) {
         // Check for sufficient funds.
         if (balance_of[msg.sender] < _value) throw;
 
@@ -156,7 +156,7 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
     }
 
     // ERC20: Allow other contracts to spend on sender's behalf
-    function approve(address _spender, uint256 _value) stopInEmergency returns (bool ok) {
+    function approve(address _spender, uint256 _value) stopInEmergency onlyPayloadSize(2) returns (bool ok) {
         if ((_value != 0) && (allowance_of[msg.sender][_spender] != 0)) throw;
         allowance_of[msg.sender][_spender] = _value;
         Approval(msg.sender, _spender, _value);

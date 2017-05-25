@@ -18,6 +18,12 @@ contract Safe {
         return(a == 0 || (c / a) == b);
     }
 
+    // mitigate short address attack
+    modifier onlyPayloadSize(uint numWords) {
+        assert(msg.data.length == numWords * 32 + 4);
+        _;
+    }
+
     // prevents accidental sending of ether
     function () {
         throw;
