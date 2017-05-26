@@ -52,11 +52,6 @@ contract Shareable {
 
   address thisContract = this;
 
-  modifier onlyThis {
-    if (msg.sender == thisContract)
-      _;
-  }
-
   // simple single-sig function modifier.
   modifier onlyOwner {
     if (isOwner(msg.sender))

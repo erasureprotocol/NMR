@@ -63,5 +63,4 @@ contract NumeraireShared is Safe {
         assert(safeToSubtract(total_allowance, total_minted));
         return total_allowance - total_minted;
     }
-
 }
