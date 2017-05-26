@@ -56,13 +56,12 @@ contract NumeraireShared is Safe {
 
     // Calculate allowable disbursement
     function getMintable() constant returns (uint256) {
-        assert(safeToSubtract(block.timestamp, deploy_time));
-        uint256 time_delta = (block.timestamp - deploy_time);
-        assert(safeToMultiply(weekly_disbursement, time_delta));
-        uint256 incremental_allowance = (weekly_disbursement * time_delta) / 1 weeks;
-        assert(safeToAdd(initial_disbursement, incremental_allowance));
-        uint256 total_allowance = initial_disbursement + incremental_allowance;
-        assert(safeToSubtract(total_allowance, total_minted));
-        return total_allowance - total_minted;
+        return
+            safeSubtract(
+                safeAdd(initial_disbursement,
+                    safeMultiply(weekly_disbursement,
+                        safeSubtract(block.timestamp, deploy_time))
+                    / 1 weeks),
+                total_minted);
     }
 }

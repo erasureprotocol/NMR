@@ -3,19 +3,23 @@ pragma solidity ^0.4.11;
 
 contract Safe {
     // Check if it is safe to add two numbers
-    function safeToAdd(uint a, uint b) internal returns (bool) {
+    function safeAdd(uint a, uint b) internal returns (uint) {
         uint c = a + b;
-        return (c >= a && c >= b);
+        assert(c >= a && c >= b);
+        return c;
     }
 
     // Check if it is safe to subtract two numbers
-    function safeToSubtract(uint a, uint b) internal returns (bool) {
-        return (b <= a && a - b <= a);
+    function safeSubtract(uint a, uint b) internal returns (uint) {
+        uint c = a - b;
+        assert(b <= a && c <= a);
+        return c;
     }
 
-    function safeToMultiply(uint a, uint b) internal returns (bool) {
+    function safeMultiply(uint a, uint b) internal returns (uint) {
         uint c = a * b;
-        return(a == 0 || (c / a) == b);
+        assert(a == 0 || (c / a) == b);
+        return c;
     }
 
     // mitigate short address attack

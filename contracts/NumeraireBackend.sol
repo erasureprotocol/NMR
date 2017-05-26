@@ -126,16 +126,12 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
 
         // Check for sufficient funds.
         require(balanceOf[_from] >= _value);
-        // Prevent overflows.
-        assert(safeToAdd(balanceOf[_to], _value));
         // Check for authorization to spend.
         require(allowance[_from][msg.sender] >= _value);
-        assert(safeToSubtract(balanceOf[_from], _value));
-        assert(safeToSubtract(allowance[_from][msg.sender], _value));
 
-        balanceOf[_from] -= _value;
-        allowance[_from][msg.sender] -= _value;
-        balanceOf[_to] += _value;
+        balanceOf[_from] = safeSubtract(balanceOf[_from], _value);
+        allowance[_from][msg.sender] = safeSubtract(allowance[_from][msg.sender], _value);
+        balanceOf[_to] = safeAdd(balanceOf[_to], _value);
 
         // Notify anyone listening.
         Transfer(_from, _to, _value);
@@ -148,12 +144,8 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
         // Check for sufficient funds.
         require(balanceOf[msg.sender] >= _value);
 
-        // Prevent overflows.
-        assert(safeToSubtract(balanceOf[msg.sender], _value));
-        assert(safeToAdd(balanceOf[_to], _value));
-
-        balanceOf[msg.sender] -= _value;
-        balanceOf[_to] += _value;
+        balanceOf[msg.sender] = safeSubtract(balanceOf[msg.sender], _value);
+        balanceOf[_to] = safeAdd(balanceOf[_to], _value);
 
         // Notify anyone listening.
         Transfer(msg.sender, _to, _value);
