@@ -25,7 +25,7 @@ contract StoppableShareable is Shareable {
   }
 
   // called by the owners on end of emergency, returns to normal state
-  function release() external onlyManyOwners(sha3(msg.data)) onlyInEmergency {
+  function release() external onlyManyOwners(sha3(msg.data)) {
     assert(stoppable);
     stopped = false;
   }
