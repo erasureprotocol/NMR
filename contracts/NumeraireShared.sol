@@ -16,10 +16,12 @@ contract NumeraireShared is Safe {
     uint256 public deploy_time;
 
     uint256 public total_minted;
-    uint256 public total_supply;
 
-    mapping (address => uint256) public balance_of;
-    mapping (address => mapping (address => uint256)) public allowance_of;
+    // ERC20 requires totalSupply, balanceOf, and allowance
+    uint256 public totalSupply;
+    mapping (address => uint256) public balanceOf;
+    mapping (address => mapping (address => uint256)) public allowance;
+
     mapping (uint => Tournament) public tournaments;  // tournamentID
 
     struct Tournament {

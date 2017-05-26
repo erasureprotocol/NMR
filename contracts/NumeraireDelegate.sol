@@ -13,8 +13,8 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Numerai
     // All minted NMR are initially sent to Numerai, obeying both weekly and total supply caps
     function mint(uint256 _value) onlyOwner returns (bool ok) {
         // Prevent overflows.
-        assert(safeToAdd(balance_of[numerai], _value));
-        assert(safeToAdd(total_supply, _value));
+        assert(safeToAdd(balanceOf[numerai], _value));
+        assert(safeToAdd(totalSupply, _value));
         assert(safeToAdd(total_minted, _value));
 
         // Prevent minting more than the supply cap.
@@ -23,8 +23,8 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Numerai
         // Prevent minting more than the disbursement.
         require(_value <= getMintable());
 
-        balance_of[numerai] += _value;
-        total_supply += _value;
+        balanceOf[numerai] += _value;
+        totalSupply += _value;
         total_minted += _value;
 
         // Notify anyone listening.
@@ -42,17 +42,17 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Numerai
         require(stake.amount > 0);
         require(!stake.resolved);
         require(round.resolutionTime <= block.timestamp);
-        assert(safeToAdd(balance_of[numerai], stake.amount));
+        assert(safeToAdd(balanceOf[numerai], stake.amount));
 
         stake.amount = 0;
-        balance_of[_staker] += originalStakeAmount;
+        balanceOf[_staker] += originalStakeAmount;
         stake.resolved = true;
         stake.successful = _successful;
 
         if (_etherValue > 0) {
             if (!_staker.send(_etherValue)) {
                 stake.amount += originalStakeAmount;
-                balance_of[_staker] -= originalStakeAmount;
+                balanceOf[_staker] -= originalStakeAmount;
                 stake.resolved = false;
                 stake.successful = false;
                 return false;
@@ -72,10 +72,10 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Numerai
         require(stake.amount > 0);
         require(!stake.resolved);
         require(round.resolutionTime <= block.timestamp);
-        assert(safeToSubtract(total_supply, stake.amount));
+        assert(safeToSubtract(totalSupply, stake.amount));
 
         stake.amount = 0;
-        total_supply -= originalStakeAmount;
+        totalSupply -= originalStakeAmount;
         stake.resolved = true;
         stake.successful = false;
 
@@ -101,7 +101,7 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Numerai
         var stake = round.stakes[_staker];
 
         require(!isOwner(_staker) && _staker != numerai); // Numerai cannot stake on itself
-        require(balance_of[_staker] >= _value); // Check for sufficient funds
+        require(balanceOf[_staker] >= _value); // Check for sufficient funds
         require(tournament.creationTime > 0); // This tournament must be initialized
         require(round.creationTime > 0); // This round must be initialized
         require(round.resolutionTime > block.timestamp); // Can't stake after round ends
@@ -109,7 +109,7 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Numerai
 
         // Prevent overflows.
         assert(safeToAdd(stake.amount, _value));
-        assert(safeToSubtract(balance_of[_staker], _value));
+        assert(safeToSubtract(balanceOf[_staker], _value));
 
         if (stake.confidence == 0) {
             stake.confidence = _confidence;
@@ -126,7 +126,7 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Numerai
         }
 
         stake.amount += _value;
-        balance_of[_staker] -= _value;
+        balanceOf[_staker] -= _value;
 
         // Notify anyone listening.
         Staked(_staker, stake.amount, stake.confidence, _tournamentID, _roundID);
@@ -137,14 +137,14 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Numerai
     // Transfer NMR from Numerai account using multisig
     function numeraiTransfer(address _to, uint256 _value) onlyManyOwners(sha3(msg.data)) returns (bool ok) {
         // Check for sufficient funds.
-        require(balance_of[numerai] >= _value);
+        require(balanceOf[numerai] >= _value);
 
         // Prevent overflows.
-        assert(safeToSubtract(balance_of[numerai], _value));
-        assert(safeToAdd(balance_of[_to], _value));
+        assert(safeToSubtract(balanceOf[numerai], _value));
+        assert(safeToAdd(balanceOf[_to], _value));
 
-        balance_of[numerai] -= _value;
-        balance_of[_to] += _value;
+        balanceOf[numerai] -= _value;
+        balanceOf[_to] += _value;
 
         // Notify anyone listening.
         Transfer(numerai, _to, _value);
@@ -159,13 +159,13 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Numerai
         require(_from <= max_deposit_address);
 
         // Identical to transfer(), except msg.sender => _from
-        require(balance_of[_from] >= _value);
+        require(balanceOf[_from] >= _value);
 
-        assert(safeToSubtract(balance_of[_from], _value));
-        assert(safeToAdd(balance_of[_to], _value));
+        assert(safeToSubtract(balanceOf[_from], _value));
+        assert(safeToAdd(balanceOf[_to], _value));
 
-        balance_of[_from] -= _value;
-        balance_of[_to] += _value;
+        balanceOf[_from] -= _value;
+        balanceOf[_to] += _value;
 
         Transfer(_from, _to, _value);
 

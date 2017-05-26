@@ -12,6 +12,8 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
     address[] public previousDelegates;
 
     string public standard = "ERC20";
+
+    // ERC20 requires name, symbol, and decimals
     string public name = "Numeraire";
     string public symbol = "NMR";
     uint256 public decimals = 18;
@@ -19,7 +21,7 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
     event DelegateChanged(address oldAddress, address newAddress);
 
     function NumeraireBackend(address[] _owners, uint256 _num_required, uint256 _initial_disbursement) StoppableShareable(_owners, _num_required) {
-        total_supply = 0;
+        totalSupply = 0;
         total_minted = 0;
 
         initial_disbursement = _initial_disbursement;
@@ -118,29 +120,22 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
         return (stake.confidence, stake.amount, stake.successful, stake.resolved);
     }
 
-    function changeApproval(address _spender, uint256 _oldValue, uint256 _newValue) stopInEmergency onlyPayloadSize(3) returns (bool ok) {
-        require(allowance_of[msg.sender][_spender] == _oldValue);
-        allowance_of[msg.sender][_spender] = _newValue;
-        Approval(msg.sender, _spender, _newValue);
-        return true;
-    }
-
     // ERC20: Send from a contract
     function transferFrom(address _from, address _to, uint256 _value) stopInEmergency onlyPayloadSize(3) returns (bool ok) {
         require(!isOwner(_from) && _from != numerai); // Transfering from Numerai can only be done with the numeraiTransfer function
 
         // Check for sufficient funds.
-        require(balance_of[_from] >= _value);
+        require(balanceOf[_from] >= _value);
         // Prevent overflows.
-        assert(safeToAdd(balance_of[_to], _value));
+        assert(safeToAdd(balanceOf[_to], _value));
         // Check for authorization to spend.
-        require(allowance_of[_from][msg.sender] >= _value);
-        assert(safeToSubtract(balance_of[_from], _value));
-        assert(safeToSubtract(allowance_of[_from][msg.sender], _value));
+        require(allowance[_from][msg.sender] >= _value);
+        assert(safeToSubtract(balanceOf[_from], _value));
+        assert(safeToSubtract(allowance[_from][msg.sender], _value));
 
-        balance_of[_from] -= _value;
-        allowance_of[_from][msg.sender] -= _value;
-        balance_of[_to] += _value;
+        balanceOf[_from] -= _value;
+        allowance[_from][msg.sender] -= _value;
+        balanceOf[_to] += _value;
 
         // Notify anyone listening.
         Transfer(_from, _to, _value);
@@ -151,14 +146,14 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
     // ERC20: Anyone with NMR can transfer NMR
     function transfer(address _to, uint256 _value) stopInEmergency onlyPayloadSize(2) returns (bool ok) {
         // Check for sufficient funds.
-        require(balance_of[msg.sender] >= _value);
+        require(balanceOf[msg.sender] >= _value);
 
         // Prevent overflows.
-        assert(safeToSubtract(balance_of[msg.sender], _value));
-        assert(safeToAdd(balance_of[_to], _value));
+        assert(safeToSubtract(balanceOf[msg.sender], _value));
+        assert(safeToAdd(balanceOf[_to], _value));
 
-        balance_of[msg.sender] -= _value;
-        balance_of[_to] += _value;
+        balanceOf[msg.sender] -= _value;
+        balanceOf[_to] += _value;
 
         // Notify anyone listening.
         Transfer(msg.sender, _to, _value);
@@ -168,24 +163,16 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
 
     // ERC20: Allow other contracts to spend on sender's behalf
     function approve(address _spender, uint256 _value) stopInEmergency onlyPayloadSize(2) returns (bool ok) {
-        require((_value == 0) || (allowance_of[msg.sender][_spender] == 0));
-        allowance_of[msg.sender][_spender] = _value;
+        require((_value == 0) || (allowance[msg.sender][_spender] == 0));
+        allowance[msg.sender][_spender] = _value;
         Approval(msg.sender, _spender, _value);
         return true;
     }
 
-    // ERC20 interface to read total supply
-    function totalSupply() constant returns (uint256 _supply) {
-        return total_supply;
-    }
-
-    // ERC20 interface to read balance
-    function balanceOf(address _owner) constant returns (uint256 _balance) {
-        return balance_of[_owner];
-    }
-
-    // ERC20 interface to read allowance
-    function allowance(address _owner, address _spender) constant returns (uint256 _allowance) {
-        return allowance_of[_owner][_spender];
+    function changeApproval(address _spender, uint256 _oldValue, uint256 _newValue) stopInEmergency onlyPayloadSize(3) returns (bool ok) {
+        require(allowance[msg.sender][_spender] == _oldValue);
+        allowance[msg.sender][_spender] = _newValue;
+        Approval(msg.sender, _spender, _newValue);
+        return true;
     }
 }
