@@ -86,7 +86,7 @@ contract Shareable {
   // new multisig is given number of sigs required to do protected "onlymanyowners" transactions
   // as well as the selection of addresses capable of confirming them.
   // take all new owners as an array
-  function changeSharable(address[] _owners, uint _required) onlyManyOwners(sha3(msg.data)) {
+  function changeShareable(address[] _owners, uint _required) onlyManyOwners(sha3(msg.data)) {
     for (uint i = 0; i < _owners.length; ++i) {
       owners[1 + i] = _owners[i];
       ownerIndex[_owners[i]] = 1 + i;
