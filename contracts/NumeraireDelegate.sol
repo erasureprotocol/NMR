@@ -155,7 +155,7 @@ contract NumeraireDelegate is StoppableShareable, DestructibleShareable, Numerai
     // Allows Numerai to withdraw on behalf of a data scientist some NMR that they've deposited into a pre-assigned address
     // Numerai will assign these addresses on its website
     function withdraw(address _from, address _to, uint256 _value) onlyOwner returns(bool ok) {
-        var max_deposit_address = 1000000;
+        address max_deposit_address = 1000000;
         require(_from <= max_deposit_address);
 
         // Identical to transfer(), except msg.sender => _from

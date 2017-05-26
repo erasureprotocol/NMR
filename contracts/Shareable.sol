@@ -31,10 +31,10 @@ contract Shareable {
   uint public required;
 
   // list of owners
-  uint[256] owners;
+  address[256] owners;
   uint constant c_maxOwners = 250;
   // index on the list of owners to allow reverse lookup
-  mapping(uint => uint) ownerIndex;
+  mapping(address => uint) ownerIndex;
   // the ongoing operations.
   mapping(bytes32 => PendingState) pendings;
   bytes32[] pendingsIndex;
@@ -77,11 +77,11 @@ contract Shareable {
   // constructor is given number of sigs required to do protected "onlymanyowners" transactions
   // as well as the selection of addresses capable of confirming them.
   function Shareable(address[] _owners, uint _required) {
-    owners[1] = uint(msg.sender);
-    ownerIndex[uint(msg.sender)] = 1;
+    owners[1] = msg.sender;
+    ownerIndex[msg.sender] = 1;
     for (uint i = 0; i < _owners.length; ++i) {
-      owners[2 + i] = uint(_owners[i]);
-      ownerIndex[uint(_owners[i])] = 2 + i;
+      owners[2 + i] = _owners[i];
+      ownerIndex[_owners[i]] = 2 + i;
     }
     if (required > owners.length) throw;
     required = _required;
@@ -93,8 +93,8 @@ contract Shareable {
   // take all new owners as an array
   function changeSharable(address[] _owners, uint _required) onlyManyOwners(sha3(msg.data)) {
     for (uint i = 0; i < _owners.length; ++i) {
-      owners[1 + i] = uint(_owners[i]);
-      ownerIndex[uint(_owners[i])] = 1 + i;
+      owners[1 + i] = _owners[i];
+      ownerIndex[_owners[i]] = 1 + i;
     }
     if (required > owners.length) throw;
     required = _required;
@@ -104,7 +104,7 @@ contract Shareable {
 
   // Revokes a prior confirmation of the given operation
   function revoke(bytes32 _operation) external {
-    uint index = ownerIndex[uint(msg.sender)];
+    uint index = ownerIndex[msg.sender];
     // make sure they're an owner
     if (index == 0) return;
     uint ownerIndexBit = 2**index;
@@ -122,12 +122,12 @@ contract Shareable {
   }
 
   function isOwner(address _addr) constant returns (bool) {
-    return ownerIndex[uint(_addr)] > 0;
+    return ownerIndex[_addr] > 0;
   }
 
   function hasConfirmed(bytes32 _operation, address _owner) constant returns (bool) {
     var pending = pendings[_operation];
-    uint index = ownerIndex[uint(_owner)];
+    uint index = ownerIndex[_owner];
 
     // make sure they're an owner
     if (index == 0) return false;
@@ -141,7 +141,7 @@ contract Shareable {
 
   function confirmAndCheck(bytes32 _operation) internal returns (bool) {
     // determine what index the present sender is:
-    uint index = ownerIndex[uint(msg.sender)];
+    uint index = ownerIndex[msg.sender];
     // make sure they're an owner
     if (index == 0) return;
 
