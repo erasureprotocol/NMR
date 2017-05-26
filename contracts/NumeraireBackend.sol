@@ -45,6 +45,17 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
         return false;
     }
 
+    function claimTokens(address _token) onlyOwner {
+        if (_token == 0x0) {
+            msg.sender.transfer(this.balance);
+            return;
+        }
+
+        NumeraireBackend token = NumeraireBackend(_token);
+        uint256 balance = token.balanceOf(this);
+        token.transfer(msg.sender, balance);
+    }
+
     function mint(uint256 _value) stopInEmergency returns (bool ok) {
         return delegateContract.delegatecall(bytes4(sha3("mint(uint256)")), _value);
     }
