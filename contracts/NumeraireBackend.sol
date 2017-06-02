@@ -1,4 +1,4 @@
-pragma solidity ^0.4.8;
+pragma solidity ^0.4.11;
 
 // This is the contract that will be unchangeable once deployed.  It will call delegate functions in another contract to change state.  The delegate contract is upgradable.
 
@@ -12,6 +12,8 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
     address[] public previousDelegates;
 
     string public standard = "ERC20";
+
+    // ERC20 requires name, symbol, and decimals
     string public name = "Numeraire";
     string public symbol = "NMR";
     uint256 public decimals = 18;
@@ -19,7 +21,7 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
     event DelegateChanged(address oldAddress, address newAddress);
 
     function NumeraireBackend(address[] _owners, uint256 _num_required, uint256 _initial_disbursement) StoppableShareable(_owners, _num_required) {
-        total_supply = 0;
+        totalSupply = 0;
         total_minted = 0;
 
         initial_disbursement = _initial_disbursement;
@@ -27,12 +29,12 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
     }
 
     function disableContractUpgradability() onlyManyOwners(sha3(msg.data)) returns (bool) {
-        if (!contractUpgradable) throw;
+        assert(contractUpgradable);
         contractUpgradable = false;
     }
 
     function changeDelegate(address _newDelegate) onlyManyOwners(sha3(msg.data)) returns (bool) {
-        if (!contractUpgradable) throw;
+        assert(contractUpgradable);
 
         if (_newDelegate != delegateContract) {
             previousDelegates.push(delegateContract);
@@ -45,6 +47,17 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
         return false;
     }
 
+    function claimTokens(address _token) onlyOwner {
+        if (_token == 0x0) {
+            msg.sender.transfer(this.balance);
+            return;
+        }
+
+        NumeraireBackend token = NumeraireBackend(_token);
+        uint256 balance = token.balanceOf(this);
+        token.transfer(msg.sender, balance);
+    }
+
     function mint(uint256 _value) stopInEmergency returns (bool ok) {
         return delegateContract.delegatecall(bytes4(sha3("mint(uint256)")), _value);
     }
@@ -53,29 +66,29 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
         return delegateContract.delegatecall(bytes4(sha3("stake(uint256,uint256,uint256,uint256)")), _value, _tournamentID, _roundID, _confidence);
     }
 
-    function stakeOnBehalf(address _staker, uint256 _value, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) stopInEmergency returns (bool ok) {
+    function stakeOnBehalf(address _staker, uint256 _value, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) stopInEmergency onlyPayloadSize(5) returns (bool ok) {
         return delegateContract.delegatecall(bytes4(sha3("stakeOnBehalf(address,uint256,uint256,uint256,uint256)")), _staker, _value, _tournamentID, _roundID, _confidence);
     }
 
-    function releaseStake(address _staker, uint256 _etherValue, uint256 _tournamentID, uint256 _roundID, bool _successful) stopInEmergency returns (bool ok) {
+    function releaseStake(address _staker, uint256 _etherValue, uint256 _tournamentID, uint256 _roundID, bool _successful) stopInEmergency onlyPayloadSize(5) returns (bool ok) {
         return delegateContract.delegatecall(bytes4(sha3("releaseStake(address,uint256,uint256,uint256,bool)")), _staker, _etherValue, _tournamentID, _roundID, _successful);
     }
 
-    function destroyStake(address _staker, uint256 _tournamentID, uint256 _roundID) stopInEmergency returns (bool ok) {
+    function destroyStake(address _staker, uint256 _tournamentID, uint256 _roundID) stopInEmergency onlyPayloadSize(3) returns (bool ok) {
         return delegateContract.delegatecall(bytes4(sha3("destroyStake(address,uint256,uint256)")), _staker, _tournamentID, _roundID);
     }
 
-    function numeraiTransfer(address _to, uint256 _value) returns(bool ok) {
+    function numeraiTransfer(address _to, uint256 _value) onlyPayloadSize(2) returns(bool ok) {
         return delegateContract.delegatecall(bytes4(sha3("numeraiTransfer(address,uint256)")), _to, _value);
     }
 
-    function withdraw(address _from, address _to, uint256 _value) returns(bool ok) {
+    function withdraw(address _from, address _to, uint256 _value) onlyPayloadSize(3) returns(bool ok) {
         return delegateContract.delegatecall(bytes4(sha3("withdraw(address,address,uint256)")), _from, _to, _value);
     }
 
     function createTournament(uint256 _tournamentID) returns (bool ok) {
         var tournament = tournaments[_tournamentID];
-        if (tournament.creationTime != 0) throw; // Already created
+        require(tournament.creationTime == 0); // Already created
         tournament.creationTime = block.timestamp;
         TournamentCreated(_tournamentID);
         return true;
@@ -84,7 +97,7 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
     function createRound(uint256 _tournamentID, uint256 _roundID, uint256 _resolutionTime) returns (bool ok) {
         var tournament = tournaments[_tournamentID];
         var round = tournament.rounds[_roundID];
-        if (round.creationTime != 0) throw;
+        require(round.creationTime == 0);
         tournament.roundIDs.push(_roundID);
         round.creationTime = block.timestamp;
         round.resolutionTime = _resolutionTime;
@@ -108,21 +121,17 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
     }
 
     // ERC20: Send from a contract
-    function transferFrom(address _from, address _to, uint256 _value) stopInEmergency returns (bool ok) {
-        if (isOwner(_from) || _from == numerai) throw; // Transfering from Numerai can only be done with the numeraiTransfer function
+    function transferFrom(address _from, address _to, uint256 _value) stopInEmergency onlyPayloadSize(3) returns (bool ok) {
+        require(!isOwner(_from) && _from != numerai); // Transfering from Numerai can only be done with the numeraiTransfer function
 
         // Check for sufficient funds.
-        if (balance_of[_from] < _value) throw;
-        // Prevent overflows.
-        if (!safeToAdd(balance_of[_to], _value)) throw;
+        require(balanceOf[_from] >= _value);
         // Check for authorization to spend.
-        if (allowance_of[_from][msg.sender] < _value) throw;
-        if (!safeToSubtract(balance_of[_from], _value)) throw;
-        if (!safeToSubtract(allowance_of[_from][msg.sender], _value)) throw;
+        require(allowance[_from][msg.sender] >= _value);
 
-        balance_of[_from] -= _value;
-        allowance_of[_from][msg.sender] -= _value;
-        balance_of[_to] += _value;
+        balanceOf[_from] = safeSubtract(balanceOf[_from], _value);
+        allowance[_from][msg.sender] = safeSubtract(allowance[_from][msg.sender], _value);
+        balanceOf[_to] = safeAdd(balanceOf[_to], _value);
 
         // Notify anyone listening.
         Transfer(_from, _to, _value);
@@ -131,16 +140,12 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
     }
 
     // ERC20: Anyone with NMR can transfer NMR
-    function transfer(address _to, uint256 _value) stopInEmergency returns (bool ok) {
+    function transfer(address _to, uint256 _value) stopInEmergency onlyPayloadSize(2) returns (bool ok) {
         // Check for sufficient funds.
-        if (balance_of[msg.sender] < _value) throw;
+        require(balanceOf[msg.sender] >= _value);
 
-        // Prevent overflows.
-        if (!safeToAdd(balance_of[_to], _value)) throw;
-        if (!safeToSubtract(balance_of[msg.sender], _value)) throw;
-
-        balance_of[msg.sender] -= _value;
-        balance_of[_to] += _value;
+        balanceOf[msg.sender] = safeSubtract(balanceOf[msg.sender], _value);
+        balanceOf[_to] = safeAdd(balanceOf[_to], _value);
 
         // Notify anyone listening.
         Transfer(msg.sender, _to, _value);
@@ -149,24 +154,17 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
     }
 
     // ERC20: Allow other contracts to spend on sender's behalf
-    function approve(address _spender, uint256 _value) stopInEmergency returns (bool ok) {
-        allowance_of[msg.sender][_spender] = _value;
+    function approve(address _spender, uint256 _value) stopInEmergency onlyPayloadSize(2) returns (bool ok) {
+        require((_value == 0) || (allowance[msg.sender][_spender] == 0));
+        allowance[msg.sender][_spender] = _value;
         Approval(msg.sender, _spender, _value);
         return true;
     }
 
-    // ERC20 interface to read total supply
-    function totalSupply() constant returns (uint256 _supply) {
-        return total_supply;
-    }
-
-    // ERC20 interface to read balance
-    function balanceOf(address _owner) constant returns (uint256 _balance) {
-        return balance_of[_owner];
-    }
-
-    // ERC20 interface to read allowance
-    function allowance(address _owner, address _spender) constant returns (uint256 _allowance) {
-        return allowance_of[_owner][_spender];
+    function changeApproval(address _spender, uint256 _oldValue, uint256 _newValue) stopInEmergency onlyPayloadSize(3) returns (bool ok) {
+        require(allowance[msg.sender][_spender] == _oldValue);
+        allowance[msg.sender][_spender] = _newValue;
+        Approval(msg.sender, _spender, _newValue);
+        return true;
     }
 }

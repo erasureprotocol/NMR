@@ -1,4 +1,4 @@
-pragma solidity ^0.4.8;
+pragma solidity ^0.4.11;
 
 import "contracts/Safe.sol";
 
@@ -9,17 +9,19 @@ contract NumeraireShared is Safe {
     address public numerai = this;
 
     // Cap the total supply and the weekly supply
-    uint256 public supply_cap = 21000000000000000000000000; // 21 million
+    uint256 public supply_cap = 21000000e18; // 21 million
     uint256 public weekly_disbursement = 96153846153846153846153;
 
     uint256 public initial_disbursement;
     uint256 public deploy_time;
 
     uint256 public total_minted;
-    uint256 public total_supply;
 
-    mapping (address => uint256) public balance_of;
-    mapping (address => mapping (address => uint256)) public allowance_of;
+    // ERC20 requires totalSupply, balanceOf, and allowance
+    uint256 public totalSupply;
+    mapping (address => uint256) public balanceOf;
+    mapping (address => mapping (address => uint256)) public allowance;
+
     mapping (uint => Tournament) public tournaments;  // tournamentID
 
     struct Tournament {
@@ -54,14 +56,12 @@ contract NumeraireShared is Safe {
 
     // Calculate allowable disbursement
     function getMintable() constant returns (uint256) {
-        if (!safeToSubtract(block.timestamp, deploy_time)) throw;
-        uint256 time_delta = (block.timestamp - deploy_time);
-        if (!safeToMultiply(weekly_disbursement, time_delta)) throw;
-        uint256 incremental_allowance = (weekly_disbursement * time_delta) / 1 weeks;
-        if (!safeToAdd(initial_disbursement, incremental_allowance)) throw;
-        uint256 total_allowance = initial_disbursement + incremental_allowance;
-        if (!safeToSubtract(total_allowance, total_minted)) throw;
-        return total_allowance - total_minted;
+        return
+            safeSubtract(
+                safeAdd(initial_disbursement,
+                    safeMultiply(weekly_disbursement,
+                        safeSubtract(block.timestamp, deploy_time))
+                    / 1 weeks),
+                total_minted);
     }
-
 }
