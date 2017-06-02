@@ -28,8 +28,6 @@ contract Safe {
         _;
     }
 
-    // prevents accidental sending of ether
-    function () {
-        throw;
-    }
+    // allow ether to be received
+    function () payable { }
 }
