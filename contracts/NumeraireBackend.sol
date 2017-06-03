@@ -8,7 +8,7 @@ import "contracts/NumeraireShared.sol";
 contract NumeraireBackend is StoppableShareable, NumeraireShared {
 
     address public delegateContract;
-    bool contractUpgradable = true;
+    bool public contractUpgradable = true;
     address[] public previousDelegates;
 
     string public standard = "ERC20";
@@ -48,6 +48,7 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
     }
 
     function claimTokens(address _token) onlyOwner {
+        assert(_token != numerai);
         if (_token == 0x0) {
             msg.sender.transfer(this.balance);
             return;

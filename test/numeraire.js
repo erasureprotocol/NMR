@@ -1,4 +1,4 @@
-var BigNumber = require('bignumber.js')
+var Big = require('bignumber.js')
 
 function rpc(method, arg) {
     var req = {
@@ -35,11 +35,32 @@ function ifUsingTestRPC() {
     return
 }
 
+// lifted from: https://ethereum.stackexchange.com/questions/9103/how-can-you-handle-an-expected-throw-in-a-contract-test-using-truffle-and-ethere
+function assertThrows (fn, args) {
+    //Asserts that `fn(args)` will throw a specific type of error.
+    return new Promise(
+        function(resolve, reject){
+            fn.apply(this, args)
+                .then(() => {
+                    assert(false, 'No error thrown.');
+                    resolve();
+                },
+                (error) => {
+                    var errstr = error.toString();
+                    var newErrMsg = errstr.indexOf('invalid opcode') != -1;
+                    var oldErrMsg = errstr.indexOf('invalid JUMP') != -1;
+                    if(!newErrMsg && !oldErrMsg)
+                      assert(false, 'Did not receive expected error message');
+                    resolve();
+                })
+        })
+}
+
 //Some default values for gas
 var gasAmount = 3000000
 var gasPrice = 20000000000
-var initialDisbursement = new BigNumber(1500000000000000000000000)
-var nmr_per_week = new BigNumber(96153846153846100000000).add(53846153)
+var initialDisbursement = new Big(1500000000000000000000000)
+var nmr_per_week = new Big(96153846153846100000000).add(53846153)
 
 var multiSigAddresses = ['0x54fd80d6ae7584d8e9a19fe1df43f04e5282cc43', '0xa6d135de4acf44f34e2e14a4ee619ce0a99d1e08']
 var Numeraire = artifacts.require("./NumeraireBackend.sol")
@@ -55,7 +76,7 @@ function almost_equal(one, two) {
 contract('Numeraire', function(accounts) {
 
     before(function(done) {
-        var etherAmount = new BigNumber('1000000000000000000')
+        var etherAmount = new Big('1000000000000000000')
         web3.eth.sendTransaction({from: accounts[0], to: multiSigAddresses[0], value: etherAmount, gasLimit: 21000, gasPrice: gasPrice})
         web3.eth.sendTransaction({from: accounts[5], to: multiSigAddresses[1], value: etherAmount, gasLimit: 21000, gasPrice: gasPrice})
 
@@ -86,7 +107,7 @@ contract('Numeraire', function(accounts) {
         var nmr = Numeraire.deployed().then(function(instance) {
             prevBalance = web3.eth.getBalance(accounts[0])
             // try to mint initalDisbursement + 1 NMR (should allow ~0.16 NMR/second)
-            instance.mint(initialDisbursement.add(new BigNumber(1000000000000000000)), {
+            instance.mint(initialDisbursement.add(new Big(1000000000000000000)), {
                     from: accounts[0],
                     gasPrice: gasPrice,
                     gas: gasAmount
@@ -331,11 +352,105 @@ contract('Numeraire', function(accounts) {
         done()
     }) }) }) }) }) }) }) }) }) })
 
-    it('should test disabling contract upgradability')
-    it('should test changing delegate')
-    it('should test claiming ether')
+    it('should test name', function(done) { // erc20
+        Numeraire.deployed().then(instance => {
+        instance.name().then(name => {
+            assert.equal(name, "Numeraire")
+        done()
+    }) }) })
+
+    it('should test symbol', function(done) { // erc20
+        Numeraire.deployed().then(instance => {
+        instance.symbol().then(symbol => {
+            assert.equal(symbol, "NMR")
+        done()
+    }) }) })
+
+    it('should test decimals', function(done) { // erc20
+        Numeraire.deployed().then(instance => {
+        instance.decimals().then(decimals => {
+            assert.equal(decimals, 18)
+        done()
+    }) }) })
+
+    it('should test totalSupply', function(done) { // erc20
+        Numeraire.deployed().then(instance => {
+        instance.totalSupply().then(totalSupply => {
+            assert(totalSupply.gte(initialDisbursement))
+            assert(totalSupply.lte(initialDisbursement.mul(2)))
+        done()
+    }) }) })
+
+    it('should test balanceOf', function(done) { // erc20
+        Numeraire.deployed().then(instance => {
+        instance.balanceOf(instance.address).then(balance => {
+            assert(balance.gte(initialDisbursement))
+            assert(balance.lte(initialDisbursement.mul(2)))
+        done()
+    }) }) })
+
+    it('should test allowance') // erc20
+
+    it('should change delegate', function(done) { // erc20
+        var zero = '0x0000000000000000000000000000000000000000'
+        Numeraire.deployed().then(instance => {
+        NumeraireDelegate.deployed().then(delegate => {
+        instance.delegateContract().then(delegateAddress => {
+            assert.equal(delegate.address, delegateAddress)
+        instance.changeDelegate(zero, {from: multiSigAddresses[0]}).then(() => {
+        instance.changeDelegate(zero, {from: multiSigAddresses[1]}).then(() => {
+        instance.delegateContract().then(delegateAddress => {
+            assert.equal(zero, delegateAddress)
+        instance.changeDelegate(delegate.address, {from: multiSigAddresses[0]}).then(() => {
+        instance.changeDelegate(delegate.address, {from: multiSigAddresses[1]}).then(() => {
+        instance.delegateContract().then(delegateAddress => {
+            assert.equal(delegate.address, delegateAddress)
+        done()
+    }) }) }) }) }) }) }) }) }) })
+
+    it('should disable contract upgradability', function(done) { // erc20
+        var zero = '0x0000000000000000000000000000000000000000'
+        Numeraire.deployed().then(instance => {
+        NumeraireDelegate.deployed().then(delegate => {
+        instance.delegateContract().then(delegateAddress => {
+            assert.equal(delegate.address, delegateAddress)
+        instance.contractUpgradable().then(upgradable => {
+            assert.equal(upgradable, true)
+        instance.disableContractUpgradability({from: multiSigAddresses[0]}).then(() => {
+        instance.disableContractUpgradability({from: multiSigAddresses[1]}).then(() => {
+        instance.contractUpgradable().then(upgradable => {
+            assert.equal(upgradable, false)
+        instance.changeDelegate(zero, {from: multiSigAddresses[0]}).then(() => {
+            assertThrows(instance.changeDelegate, [zero, {from: multiSigAddresses[1]}])
+        instance.delegateContract().then(delegateAddress => {
+            assert.equal(delegate.address, delegateAddress)
+        done()
+    }) }) }) }) }) }) }) }) }) })
+
+    it('should allow claiming ether', function(done) { // erc20
+        var ether = new Big('1000000000000000000') // 1 ether
+        Numeraire.deployed().then(instance => {
+            var oldBalance = web3.eth.getBalance(accounts[0])
+            web3.eth.sendTransaction({from: accounts[0], to: instance.address, value: ether, gasLimit: 21000, gasPrice: gasPrice})
+            assert(web3.eth.getBalance(instance.address).equals(ether))
+        instance.claimTokens(0, {gasLimit: gasAmount, gasPrice: gasPrice}).then(() => {
+            assert(web3.eth.getBalance(instance.address).equals(new Big('0')))
+            assert(web3.eth.getBalance(accounts[0]).gte(oldBalance.minus((gasAmount + 21000) * gasPrice)))
+        done()
+    }) }) })
+
     it('should test claiming another token')
-    it('should test claiming NMR (fail)')
+
+    it('should disallow claiming NMR', function(done) { // erc20
+        var amount = new Big('1000000000000000') // .001 NMR
+        Numeraire.deployed().then(instance => {
+        instance.balanceOf(instance.address).then(oldInstanceBalance =>  {
+            assertThrows(instance.claimTokens, [instance.address])
+        instance.balanceOf(instance.address).then(newInstanceBalance => {
+            assert(!newInstanceBalance.equals(new Big('0')))
+        done()
+    }) }) }) })
+
     it('should test creating a tournament')
     it('should test creating an existing tournament (fail)')
     it('should test creating a round in an existing tournament')
@@ -355,14 +470,9 @@ contract('Numeraire', function(accounts) {
     it('should test transferFrom a contract that\'s been approved') // erc20
     it('should test changeApproval')
     it('should test changeApproval (fail)')
-    it('should test name') // erc20
-    it('should test symbol') // erc20
-    it('should test decimals') // erc20
-    it('should test totalSupply') // erc20
-    it('should test balanceOf') // erc20
-    it('should test allowance') // erc20
     it('should test getMintable')
     it('should test multisig')
+    it('should test multisig with not enough sigs (fail)')
     it('should test destructibility')
     it('should test emergency stoppage')
     it('should test minting')
