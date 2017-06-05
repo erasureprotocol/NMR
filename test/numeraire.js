@@ -56,11 +56,14 @@ function assertThrows (fn, args) {
         })
 }
 
-//Some default values for gas
+// Some default values for gas
 var gasAmount = 3000000
 var gasPrice = 20000000000
 var initialDisbursement = new Big(1500000000000000000000000)
 var nmr_per_week = new Big(96153846153846100000000).add(53846153)
+var realTournament = 5
+var realRound = 55
+var realRound2 = 555
 
 var multiSigAddresses = ['0x54fd80d6ae7584d8e9a19fe1df43f04e5282cc43', '0xa6d135de4acf44f34e2e14a4ee619ce0a99d1e08']
 var Numeraire = artifacts.require("./NumeraireBackend.sol")
@@ -421,11 +424,11 @@ contract('Numeraire', function(accounts) {
         instance.contractUpgradable().then(upgradable => {
             assert.equal(upgradable, false)
         instance.changeDelegate(zero, {from: multiSigAddresses[0]}).then(() => {
-            assertThrows(instance.changeDelegate, [zero, {from: multiSigAddresses[1]}])
+        assertThrows(instance.changeDelegate, [zero, {from: multiSigAddresses[1]}]).then(() => {
         instance.delegateContract().then(delegateAddress => {
             assert.equal(delegate.address, delegateAddress)
         done()
-    }) }) }) }) }) }) }) }) }) })
+    }) }) }) }) }) }) }) }) }) }) })
 
     it('should allow claiming ether', function(done) {
         var ether = new Big('1000000000000000000') // 1 ether
@@ -445,17 +448,17 @@ contract('Numeraire', function(accounts) {
         var amount = new Big('1000000000000000') // .001 NMR
         Numeraire.deployed().then(instance => {
         instance.balanceOf(instance.address).then(oldInstanceBalance =>  {
-            assertThrows(instance.claimTokens, [instance.address])
+        assertThrows(instance.claimTokens, [instance.address]).then(() => {
         instance.balanceOf(instance.address).then(newInstanceBalance => {
             assert(!newInstanceBalance.equals(new Big('0')))
         done()
-    }) }) }) })
+    }) }) }) }) })
 
     it('should create a tournament', function(done) {
         Numeraire.deployed().then(instance => {
-        instance.createTournament(5).then(transaction => {
+        instance.createTournament(realTournament).then(transaction => {
             var block = web3.eth.getBlock(transaction.receipt.blockNumber)
-        instance.getTournament(5).then(tournament => {
+        instance.getTournament(realTournament).then(tournament => {
             assert.equal(tournament[0].toNumber(), block.timestamp)
             assert.equal(tournament[1].length, 0)
         done()
@@ -463,45 +466,140 @@ contract('Numeraire', function(accounts) {
 
     it('should fail to create an existing tournament', function(done) {
         Numeraire.deployed().then(instance => {
-            assertThrows(instance.createTournament, [5])
+        assertThrows(instance.createTournament, [realTournament]).then(() => {
         done()
-    }) })
+    }) }) })
 
     it('should create a round in an existing tournament', function(done) {
         Numeraire.deployed().then(instance => {
-        instance.getTournament(5).then(tournament => {
+        instance.getTournament(realTournament).then(tournament => {
             assert.isAbove(tournament[0], 0)
             var block = web3.eth.getBlock("latest")
             var resolutionTime = block.timestamp + (4 * 7 * 24 * 60 * 60)
-        instance.createRound(5, 55, resolutionTime).then(transaction => {
-        instance.getRound(5, 55).then(round => {
+        instance.createRound(realTournament, realRound, resolutionTime).then(transaction => {
+        instance.getRound(realTournament, realRound).then(round => {
             var newBlock = web3.eth.getBlock(transaction.receipt.blockNumber)
             assert.equal(round[0].toNumber(), newBlock.timestamp)
             assert.equal(round[1].toNumber(), resolutionTime)
             assert.equal(round[2].length, 0)
-        instance.getTournament(5).then(tournament => {
-            assert.equal(tournament[1][0].toNumber(), 55)
+        instance.getTournament(realTournament).then(tournament => {
+            assert.equal(tournament[1][0].toNumber(), realRound)
         done()
     }) }) }) }) }) })
 
     it('should fail to create a round in a non-existing tournament', function(done) {
         Numeraire.deployed().then(instance => {
-        instance.getTournament(6).then(tournament => {
+        instance.getTournament(realTournament+1).then(tournament => {
             assert.equal(tournament[0], 0)
             var block = web3.eth.getBlock("latest")
             var resolutionTime = block.timestamp + (4 * 7 * 24 * 60 * 60)
-            assertThrows(instance.createRound, [6, 55, resolutionTime])
+        assertThrows(instance.createRound, [realTournament+1, realRound, resolutionTime]).then(() => {
+        done()
+    }) }) }) })
+
+    it('should fail to create an existing round in an existing tournament', function(done) {
+        Numeraire.deployed().then(instance => {
+        instance.getTournament(realTournament).then(tournament => {
+            assert.isAbove(tournament[0], 0)
+            assert.equal(tournament[1][0].toNumber(), realRound)
+            var block = web3.eth.getBlock("latest")
+            var resolutionTime = block.timestamp + (4 * 7 * 24 * 60 * 60)
+        assertThrows(instance.createRound, [realTournament, realRound, resolutionTime]).then(() => {
+        done()
+    }) }) }) })
+
+    it('should create a stake', function(done) {
+        var amount = 500
+        var user = accounts[2]
+        Numeraire.deployed().then(instance => {
+        instance.numeraiTransfer(user, amount, {from: accounts[0]}).then(() => {
+        instance.numeraiTransfer(user, amount, {from: multiSigAddresses[0]}).then(() => {
+        instance.balanceOf(user).then(startingBalance => {
+            assert(startingBalance.gte(amount))
+        instance.stake(amount, realTournament, realRound, 8, {from: user}).then(() => {
+        instance.getStake(realTournament, realRound, user).then(stake => {
+            assert.equal(stake[0].toNumber(), 8)
+            assert.equal(stake[1].toNumber(), amount)
+            assert.equal(stake[2], false)
+            assert.equal(stake[3], false)
+        instance.balanceOf(user).then(endingBalance => {
+            assert(startingBalance.minus(amount).equals(endingBalance))
+        instance.getRound(realTournament, realRound).then(round => {
+            assert.equal(round[2][0], user)
+        done()
+    }) }) }) }) }) }) }) }) })
+
+    it('should fail to create a stake as owner', function(done) {
+        var amount = 500
+        var user = accounts[0]
+        Numeraire.deployed().then(instance => {
+        instance.numeraiTransfer(user, amount, {from: accounts[0]}).then(() => {
+        instance.numeraiTransfer(user, amount, {from: multiSigAddresses[0]}).then(() => {
+        instance.balanceOf(user).then(startingBalance => {
+            assert(startingBalance.gte(amount))
+        assertThrows(instance.stake, [amount, realTournament, realRound, 8, {from: user}]).then(() => {
+        done()
+    }) }) }) }) }) })
+
+    it('should fail to stake more than balance', function(done) {
+        var user = accounts[2]
+        Numeraire.deployed().then(instance => {
+        instance.balanceOf(user).then(startingBalance => {
+        assertThrows(instance.stake, [startingBalance.plus(1), realTournament, realRound, 8, {from: user}]).then(() => {
+        done()
+    }) }) }) })
+
+    it('should fail to create a stake on a non-existing tournament', function(done) {
+        var amount = 500
+        var user = accounts[2]
+        Numeraire.deployed().then(instance => {
+        instance.numeraiTransfer(user, amount, {from: accounts[0]}).then(() => {
+        instance.numeraiTransfer(user, amount, {from: multiSigAddresses[0]}).then(() => {
+        instance.balanceOf(user).then(startingBalance => {
+            assert(startingBalance.gte(amount))
+        instance.getTournament(realTournament+1).then(tournament => {
+            assert.equal(tournament[0].toNumber(), 0)
+        assertThrows(instance.stake, [amount, realTournament+1, realRound, 8, {from: user}]).then(() => {
+        done()
+    }) }) }) }) }) }) })
+
+    it('should fail to create a stake on a non-existing round', function(done) {
+        var amount = 500
+        var user = accounts[2]
+        Numeraire.deployed().then(instance => {
+        instance.numeraiTransfer(user, amount, {from: accounts[0]}).then(() => {
+        instance.numeraiTransfer(user, amount, {from: multiSigAddresses[0]}).then(() => {
+        instance.balanceOf(user).then(startingBalance => {
+            assert(startingBalance.gte(amount))
+        instance.getTournament(realTournament).then(tournament => {
+            assert.isAbove(tournament[0].toNumber(), 0)
+        instance.getRound(realTournament, realRound+1).then(round => {
+            assert.equal(round[0].toNumber(), 0)
+        assertThrows(instance.stake, [amount, realTournament, realRound+1, 8, {from: user}]).then(() => {
+        done()
+    }) }) }) }) }) }) }) })
+
+    it('should fail to stake 0 NMR', function(done) {
+        var amount = 500
+        var user = accounts[2]
+        Numeraire.deployed().then(instance => {
+        assertThrows(instance.stake, [0, realTournament, realRound, 8, {from: user}]).then(() => {
         done()
     }) }) })
 
-    it('should test creating an existing round in a non-existing tournament (fail)') // say what?
-    it('should test creating an existing round in an existing tournament (fail)')
-    it('should test getting existing tournament')
-    it('should test getting non-existing tournament')
-    it('should test getting existing round')
-    it('should test getting non-existing round')
-    it('should test getting existing stake')
-    it('should test getting non-existing stake')
+    it('should fail to stake on a resolved round', function(done) {
+        var amount = 500
+        var user = accounts[2]
+        Numeraire.deployed().then(instance => {
+        instance.numeraiTransfer(user, amount, {from: accounts[0]}).then(() => {
+        instance.numeraiTransfer(user, amount, {from: multiSigAddresses[0]}).then(() => {
+        instance.balanceOf(user).then(startingBalance => {
+            assert(startingBalance.gte(amount))
+        instance.createRound(realTournament, realRound2, 0).then(() => {
+        assertThrows(instance.stake, [amount, realTournament, realRound2, 8, {from: user}]).then(() => {
+        done()
+    }) }) }) }) }) }) })
+
     it('should test transferring') // erc20
     it('should test transferring too much (fail)')
     it('should test approving a contract to spend') // erc20
@@ -525,13 +623,6 @@ contract('Numeraire', function(accounts) {
     it('should test destroying a non-existing stake (fail)')
     it('should test destroying a resolved stake (fail)')
     it('should test destroying a stake early (fail)')
-    it('should test staking')
-    it('should test staking as owner (fail)')
-    it('should test staking too much (fail)')
-    it('should test staking on non-existing tournament (fail)')
-    it('should test staking on non-existing round (fail)')
-    it('should test staking on resolved round (fail)')
-    it('should test staking 0 NMR (fail)')
     it('should test staking on behalf')
     it('should test staking on behalf of user >1m (fail)')
     it('should test transferring from numerai')
