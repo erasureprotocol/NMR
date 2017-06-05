@@ -90,7 +90,7 @@ contract('Numeraire', function(accounts) {
         done()
     }) }) }) }) })
 
-    it ("should set the delegate correctly", function(done) {
+    it ("should set the delegate correctly", function(done) { // XXX
         Numeraire.deployed().then(function(nmrInstance) {
         NumeraireDelegate.deployed().then(function(delegateInstance) {
         nmrInstance.delegateContract.call().then(function(delegateAddress) {
@@ -182,7 +182,7 @@ contract('Numeraire', function(accounts) {
         done()
     }) }) }) }) }) }) }) }) })
 
-    it('should create a tournament', (done) => {
+    it('should create a tournament', (done) => { // XXX
         Numeraire.deployed().then(function(instance) {
         instance.createTournament(0).then(function(transaction) {
             var block = web3.eth.getBlock(transaction.receipt.blockNumber)
@@ -194,7 +194,7 @@ contract('Numeraire', function(accounts) {
         done()
     }) }) }) })
 
-    it('should create a round', (done) => {
+    it('should create a round', (done) => { // XXX
         Numeraire.deployed().then(function(instance) {
         instance.createTournament(50).then(function(transaction) {
             var block = web3.eth.getBlock(transaction.receipt.blockNumber)
@@ -237,7 +237,7 @@ contract('Numeraire', function(accounts) {
     }) }) }) }) }) }) })
 
 
-    it('should stake NMR as self', (done) => {
+    it('should stake NMR as self', (done) => { // XXX
         var amount = 500
         var userAccount = accounts[2]
         Numeraire.deployed().then(function(instance) {
@@ -254,7 +254,7 @@ contract('Numeraire', function(accounts) {
         done()
     }) }) }) }) }) })
 
-    it("should send NMR correctly", function(done) {
+    it("should send NMR correctly", function(done) { // XXX
         var account_one = accounts[1]
         var account_two = accounts[2]
         var amount = 1000000000 - 1000
@@ -600,7 +600,23 @@ contract('Numeraire', function(accounts) {
         done()
     }) }) }) }) }) }) })
 
-    it('should test transferring') // erc20
+    it('should test transferring', function(done) { // erc20
+        var amount = 500
+        var user = accounts[2]
+        Numeraire.deployed().then(instance => {
+        instance.numeraiTransfer(accounts[0], amount, {from: accounts[0]}).then(() => {
+        instance.numeraiTransfer(accounts[0], amount, {from: multiSigAddresses[0]}).then(() => {
+        instance.balanceOf(accounts[0]).then(startingBalance1 => {
+            assert(startingBalance1.gte(amount))
+        instance.balanceOf(user).then(startingBalance2 => {
+        instance.transfer(user, amount, {from: accounts[0]}).then(() => {
+        instance.balanceOf(accounts[0]).then(endingBalance1 => {
+            assert(endingBalance1.equals(startingBalance1.minus(amount)))
+        instance.balanceOf(user).then(endingBalance2 => {
+            assert(endingBalance2.equals(startingBalance2.plus(amount)))
+        done()
+    }) }) }) }) }) }) }) }) })
+
     it('should test transferring too much (fail)')
     it('should test approving a contract to spend') // erc20
     it('should test approving a contract to spend with non-zero allowance (fail)')
