@@ -1,13 +1,12 @@
 pragma solidity ^0.4.11;
 
 import "contracts/StoppableShareable.sol";
-import "contracts/DestructibleShareable.sol";
 import "contracts/NumeraireShared.sol";
 
 // Whoever creates the contract has the power to stop it, this person can be changed via transferOwnership(_new_address)
-contract NumeraireDelegate is StoppableShareable, DestructibleShareable, NumeraireShared {
+contract NumeraireDelegate is StoppableShareable, NumeraireShared {
 
-    function NumeraireDelegate(address[] _owners, uint256 _num_required) StoppableShareable(_owners, _num_required) DestructibleShareable(_owners, _num_required) {
+    function NumeraireDelegate(address[] _owners, uint256 _num_required) StoppableShareable(_owners, _num_required) {
     }
 
     // All minted NMR are initially sent to Numerai, obeying both weekly and total supply caps

@@ -276,7 +276,7 @@ contract('Numeraire', function(accounts) {
         var numerai_hot_wallet = accounts[1]
         var user_account = '0x4321'
         var amount = 500
-        var nmr = Numeraire.deployed().then(function(instance) {
+        Numeraire.deployed().then(function(instance) {
         rpc('evm_snapshot').then(function(snapshot) {
             snapshotID = snapshot['id']
         instance.transfer(user_account, amount, {from: numerai_hot_wallet}).then(function() {
@@ -354,6 +354,9 @@ contract('Numeraire', function(accounts) {
             assert.equal(assignedBalance.toNumber(), 0)
         done()
     }) }) }) }) }) }) }) }) }) })
+
+    // All tests above this line are deprecated, but don't remove them unless
+    // there is an equivalent one below.
 
     it('should test name', function(done) { // erc20
         Numeraire.deployed().then(instance => {
@@ -600,7 +603,7 @@ contract('Numeraire', function(accounts) {
         done()
     }) }) }) }) }) }) })
 
-    it('should test transferring', function(done) { // erc20
+    it('should transfer', function(done) { // erc20
         var amount = 500
         var user = accounts[2]
         Numeraire.deployed().then(instance => {
@@ -617,7 +620,57 @@ contract('Numeraire', function(accounts) {
         done()
     }) }) }) }) }) }) }) }) })
 
-    it('should test transferring too much (fail)')
+    it('should fail to transfer too much', function(done) {
+        var user = accounts[2]
+        Numeraire.deployed().then(instance => {
+        instance.balanceOf(accounts[0]).then(startingBalance1 => {
+        assertThrows(instance.transfer, [user, startingBalance1.plus(1), {from: accounts[0]}]).then(() => {
+        done()
+    }) }) }) })
+
+    it('should change owners', function (done) {
+        var user = accounts[2]
+        var amount = 500
+        Numeraire.deployed().then(instance => {
+        rpc('evm_snapshot').then(snapshot => {
+        instance.balanceOf(user).then(balance1 => {
+        instance.numeraiTransfer(user, amount, {from: multiSigAddresses[0]}).then(() => {
+        instance.numeraiTransfer(user, amount, {from: multiSigAddresses[1]}).then(() => {
+        instance.balanceOf(user).then(balance2 => {
+            assert(balance2.equals(balance1.plus(amount)))
+        instance.numeraiTransfer(user, amount, {from: accounts[1]}).then(() => {
+        instance.numeraiTransfer(user, amount, {from: multiSigAddresses[1]}).then(() => {
+        instance.balanceOf(user).then(balance3 => {
+            assert(balance3.equals(balance2))
+        instance.isOwner(accounts[1]).then(isOwner1 => {
+            assert.equal(isOwner1, false)
+        instance.changeShareable([accounts[0], accounts[1], multiSigAddresses[1]], 2, {from: multiSigAddresses[0]}).then(() => {
+        instance.changeShareable([accounts[0], accounts[1], multiSigAddresses[1]], 2, {from: multiSigAddresses[1]}).then(() => {
+        instance.isOwner(accounts[1]).then(isOwner2 => {
+            assert.equal(isOwner2, true)
+        instance.numeraiTransfer(user, amount, {from: accounts[1]}).then(() => {
+        instance.balanceOf(user).then(balance4 => {
+            assert(balance4.equals(balance3.plus(amount)))
+        rpc('evm_revert', [snapshot['id']]).then(function() {
+        done()
+    }) }) }) }) }) }) }) }) }) }) }) }) }) }) }) }) })
+
+    it('should revoke a previously confirmed operation', function (done) {
+        var user = accounts[2]
+        var amount = 500
+        Numeraire.deployed().then(instance => {
+        instance.balanceOf(user).then(balance1 => {
+        instance.numeraiTransfer(user, amount, {from: multiSigAddresses[0]}).then(transaction => {
+        instance.revoke(transaction.logs[0].args.operation, {from: multiSigAddresses[0]}).then(() => {
+        instance.numeraiTransfer(user, amount, {from: multiSigAddresses[1]}).then(transaction => {
+        instance.balanceOf(user).then(balance2 => {
+            assert(balance2.equals(balance1))
+        instance.numeraiTransfer(user, amount, {from: multiSigAddresses[0]}).then(transaction => {
+        instance.balanceOf(user).then(balance3 => {
+            assert(balance3.equals(balance2.plus(amount)))
+        done()
+    }) }) }) }) }) }) }) }) })
+
     it('should test approving a contract to spend') // erc20
     it('should test approving a contract to spend with non-zero allowance (fail)')
     it('should test transferFrom a contract that\'s been approved') // erc20
