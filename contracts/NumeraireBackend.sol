@@ -98,6 +98,7 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
     function createRound(uint256 _tournamentID, uint256 _roundID, uint256 _resolutionTime) returns (bool ok) {
         var tournament = tournaments[_tournamentID];
         var round = tournament.rounds[_roundID];
+        require(tournament.creationTime > 0);
         require(round.creationTime == 0);
         tournament.roundIDs.push(_roundID);
         round.creationTime = block.timestamp;

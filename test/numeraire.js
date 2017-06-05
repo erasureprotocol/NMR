@@ -391,7 +391,7 @@ contract('Numeraire', function(accounts) {
 
     it('should test allowance') // erc20
 
-    it('should change delegate', function(done) { // erc20
+    it('should change delegate', function(done) {
         var zero = '0x0000000000000000000000000000000000000000'
         Numeraire.deployed().then(instance => {
         NumeraireDelegate.deployed().then(delegate => {
@@ -408,7 +408,7 @@ contract('Numeraire', function(accounts) {
         done()
     }) }) }) }) }) }) }) }) }) })
 
-    it('should disable contract upgradability', function(done) { // erc20
+    it('should disable contract upgradability', function(done) {
         var zero = '0x0000000000000000000000000000000000000000'
         Numeraire.deployed().then(instance => {
         NumeraireDelegate.deployed().then(delegate => {
@@ -427,7 +427,7 @@ contract('Numeraire', function(accounts) {
         done()
     }) }) }) }) }) }) }) }) }) })
 
-    it('should allow claiming ether', function(done) { // erc20
+    it('should allow claiming ether', function(done) {
         var ether = new Big('1000000000000000000') // 1 ether
         Numeraire.deployed().then(instance => {
             var oldBalance = web3.eth.getBalance(accounts[0])
@@ -441,7 +441,7 @@ contract('Numeraire', function(accounts) {
 
     it('should test claiming another token')
 
-    it('should disallow claiming NMR', function(done) { // erc20
+    it('should disallow claiming NMR', function(done) {
         var amount = new Big('1000000000000000') // .001 NMR
         Numeraire.deployed().then(instance => {
         instance.balanceOf(instance.address).then(oldInstanceBalance =>  {
@@ -451,11 +451,50 @@ contract('Numeraire', function(accounts) {
         done()
     }) }) }) })
 
-    it('should test creating a tournament')
-    it('should test creating an existing tournament (fail)')
-    it('should test creating a round in an existing tournament')
-    it('should test creating a round in a non-existing tournament (fail)') // does it?
-    it('should test creating an existing round in a non-existing tournament (fail)')
+    it('should create a tournament', function(done) {
+        Numeraire.deployed().then(instance => {
+        instance.createTournament(5).then(transaction => {
+            var block = web3.eth.getBlock(transaction.receipt.blockNumber)
+        instance.getTournament(5).then(tournament => {
+            assert.equal(tournament[0].toNumber(), block.timestamp)
+            assert.equal(tournament[1].length, 0)
+        done()
+    }) }) }) })
+
+    it('should fail to create an existing tournament', function(done) {
+        Numeraire.deployed().then(instance => {
+            assertThrows(instance.createTournament, [5])
+        done()
+    }) })
+
+    it('should create a round in an existing tournament', function(done) {
+        Numeraire.deployed().then(instance => {
+        instance.getTournament(5).then(tournament => {
+            assert.isAbove(tournament[0], 0)
+            var block = web3.eth.getBlock("latest")
+            var resolutionTime = block.timestamp + (4 * 7 * 24 * 60 * 60)
+        instance.createRound(5, 55, resolutionTime).then(transaction => {
+        instance.getRound(5, 55).then(round => {
+            var newBlock = web3.eth.getBlock(transaction.receipt.blockNumber)
+            assert.equal(round[0].toNumber(), newBlock.timestamp)
+            assert.equal(round[1].toNumber(), resolutionTime)
+            assert.equal(round[2].length, 0)
+        instance.getTournament(5).then(tournament => {
+            assert.equal(tournament[1][0].toNumber(), 55)
+        done()
+    }) }) }) }) }) })
+
+    it('should fail to create a round in a non-existing tournament', function(done) {
+        Numeraire.deployed().then(instance => {
+        instance.getTournament(6).then(tournament => {
+            assert.equal(tournament[0], 0)
+            var block = web3.eth.getBlock("latest")
+            var resolutionTime = block.timestamp + (4 * 7 * 24 * 60 * 60)
+            assertThrows(instance.createRound, [6, 55, resolutionTime])
+        done()
+    }) }) })
+
+    it('should test creating an existing round in a non-existing tournament (fail)') // say what?
     it('should test creating an existing round in an existing tournament (fail)')
     it('should test getting existing tournament')
     it('should test getting non-existing tournament')
