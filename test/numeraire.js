@@ -69,6 +69,7 @@ var multiSigAddresses = ['0x54fd80d6ae7584d8e9a19fe1df43f04e5282cc43', '0xa6d135
 var Numeraire = artifacts.require("./NumeraireBackend.sol")
 var NumeraireDelegate = artifacts.require("./NumeraireDelegate.sol")
 var snapshotID = 0
+var stakeSnapshot = 0
 
 // either equal or two is a second after one.  it's okay if one second has
 // passed during the test
@@ -278,7 +279,7 @@ contract('Numeraire', function(accounts) {
         var amount = 500
         Numeraire.deployed().then(function(instance) {
         rpc('evm_snapshot').then(function(snapshot) {
-            snapshotID = snapshot['id']
+            snapshotID = snapshot['result']
         instance.transfer(user_account, amount, {from: numerai_hot_wallet}).then(function() {
         instance.stakeOnBehalf(user_account, amount, 0, 51, 6, {from: accounts[0]}).then(function(tx_id) {
         web3.evm.increaseTime(4 * 7 * 24 * 60 * 60).then(() => { // Make sure the block timestamp is new
@@ -327,7 +328,7 @@ contract('Numeraire', function(accounts) {
             assert.equal(newStakerBalance.toNumber(), originalStakerBalance.toNumber() + amount)
         instance.getStake.call(tournamentID, roundID, staker).then(function(stakeAfterRelease) {
             assert.equal(stakeAfterRelease[0], 7)
-            assert.equal(stakeBeforeRelease - amount, stakeAfterRelease[1].toNumber())
+            assert.equal(stakeBeforeRelease - amount, stakeAfterRelease[1].toNumber()) // ?
             assert.equal(stakeAfterRelease[2], true)
             assert.equal(stakeAfterRelease[3], true)
             var newBalance = web3.eth.getBalance(staker)
@@ -513,13 +514,14 @@ contract('Numeraire', function(accounts) {
 
     it('should create a stake', function(done) {
         var amount = 500
+        var confidence = 8
         var user = accounts[2]
         Numeraire.deployed().then(instance => {
         instance.numeraiTransfer(user, amount, {from: accounts[0]}).then(() => {
         instance.numeraiTransfer(user, amount, {from: multiSigAddresses[0]}).then(() => {
         instance.balanceOf(user).then(startingBalance => {
             assert(startingBalance.gte(amount))
-        instance.stake(amount, realTournament, realRound, 8, {from: user}).then(() => {
+        instance.stake(amount, realTournament, realRound, confidence, {from: user}).then(() => {
         instance.getStake(realTournament, realRound, user).then(stake => {
             assert.equal(stake[0].toNumber(), 8)
             assert.equal(stake[1].toNumber(), amount)
@@ -529,8 +531,10 @@ contract('Numeraire', function(accounts) {
             assert(startingBalance.minus(amount).equals(endingBalance))
         instance.getRound(realTournament, realRound).then(round => {
             assert.equal(round[2][0], user)
+        rpc('evm_snapshot').then(function(snapshot) {
+            stakeSnapshot = snapshot['result']
         done()
-    }) }) }) }) }) }) }) }) })
+    }) }) }) }) }) }) }) }) }) })
 
     it('should fail to create a stake as owner', function(done) {
         var amount = 500
@@ -628,7 +632,7 @@ contract('Numeraire', function(accounts) {
         done()
     }) }) }) })
 
-    it('should change owners', function (done) {
+    it('should change owners', function(done) {
         var user = accounts[2]
         var amount = 500
         Numeraire.deployed().then(instance => {
@@ -651,11 +655,13 @@ contract('Numeraire', function(accounts) {
         instance.numeraiTransfer(user, amount, {from: accounts[1]}).then(() => {
         instance.balanceOf(user).then(balance4 => {
             assert(balance4.equals(balance3.plus(amount)))
-        rpc('evm_revert', [snapshot['id']]).then(function() {
+        rpc('evm_revert', [snapshot['result']]).then(function() {
+        instance.isOwner(multiSigAddresses[0]).then(isOwner3 => {
+            assert.equal(isOwner3, true)
         done()
-    }) }) }) }) }) }) }) }) }) }) }) }) }) }) }) }) })
+    }) }) }) }) }) }) }) }) }) }) }) }) }) }) }) }) }) })
 
-    it('should revoke a previously confirmed operation', function (done) {
+    it('should revoke a previously confirmed operation', function(done) {
         var user = accounts[2]
         var amount = 500
         Numeraire.deployed().then(instance => {
@@ -671,27 +677,127 @@ contract('Numeraire', function(accounts) {
         done()
     }) }) }) }) }) }) }) }) })
 
+    it('should perform emergency stop and release', function(done) {
+        Numeraire.deployed().then(instance => {
+        instance.emergencyStop({from: multiSigAddresses[0]}).then(() => {
+        instance.stopped().then(stopped => {
+            assert(stopped)
+        instance.mint(1).then(tx => {
+            assert.equal(tx.logs.length, 0)
+        instance.release({from: multiSigAddresses[0]}).then(() => {
+        instance.release({from: multiSigAddresses[1]}).then(() => {
+        instance.mint(1).then(tx => {
+            assert.isAbove(tx.logs.length, 0)
+        done()
+    }) }) }) }) }) }) }) })
+
+    it('should disable emergency stop', function(done) {
+        Numeraire.deployed().then(instance => {
+        instance.disableStopping({from: multiSigAddresses[0]}).then(() => {
+        instance.disableStopping({from: multiSigAddresses[1]}).then(() => {
+        instance.stoppable().then(stoppable => {
+            assert(!stoppable)
+        assertThrows(instance.emergencyStop).then(() => {
+        done()
+    }) }) }) }) }) })
+
+    it('should release a stake', function(done) {
+        var amount = 500
+        var confidence = 8
+        var user = accounts[2]
+        rpc('evm_revert', [stakeSnapshot]).then(() => {
+        rpc('evm_snapshot').then(snapshot => {
+            stakeSnapshot = snapshot['result']
+        Numeraire.deployed().then(instance => {
+        instance.balanceOf(user).then(startingBalance => {
+        web3.evm.increaseTime(4 * 7 * 24 * 60 * 60).then(function() {
+        instance.releaseStake(user, 0, realTournament, realRound, true, {from: accounts[0]}).then(() => {
+        instance.balanceOf(user).then(endingBalance => {
+            assert(endingBalance.equals(startingBalance.plus(amount)))
+        instance.getStake(realTournament, realRound, user).then(stake => {
+            assert.equal(stake[0], confidence)
+            assert.equal(stake[1], 0)
+            assert.equal(stake[2], true)
+            assert.equal(stake[3], true)
+        done()
+    }) }) }) }) }) }) }) }) })
+
+    it('should release a stake with ether', function(done) {
+        var etherAmount = new Big('1000000000000000000') // 1 ETH
+        var amount = 500
+        var confidence = 8
+        var user = accounts[2]
+        Numeraire.deployed().then(instance => {
+        rpc('evm_revert', [stakeSnapshot]).then(() => {
+            web3.eth.sendTransaction({from: accounts[0], to: instance.address, value: etherAmount, gasLimit: 23000, gasPrice: gasPrice})
+        web3.evm.increaseTime(4 * 7 * 24 * 60 * 60).then(function() {
+        instance.balanceOf(user).then(startingBalance => {
+            var startingEther = web3.eth.getBalance(user)
+        instance.releaseStake(user, etherAmount, realTournament, realRound, true, {from: multiSigAddresses[0]}).then(() => {
+            assert(web3.eth.getBalance(user).equals(startingEther.plus(etherAmount)))
+        instance.balanceOf(user).then(endingBalance => {
+            assert(endingBalance.equals(startingBalance.plus(amount)))
+        instance.getStake(realTournament, realRound, user).then(stake => {
+            assert.equal(stake[0], confidence)
+            assert.equal(stake[1], 0)
+            assert.equal(stake[2], true)
+            assert.equal(stake[3], true)
+        done()
+    }) }) }) }) }) }) }) })
+
+    it('should fail to release a resolved stake', function(done) {
+        var amount = 500
+        var confidence = 8
+        var user = accounts[2]
+        Numeraire.deployed().then(instance => {
+        instance.getStake(realTournament, realRound, user).then(stake => {
+            assert.equal(stake[0], confidence)
+            assert.equal(stake[1], 0)
+            assert.equal(stake[2], true)
+            assert.equal(stake[3], true)
+        assertThrows(instance.releaseStake, [user, 0, realTournament, realRound, true, {from: accounts[0]}]).then(() => {
+        done()
+    }) }) }) })
+
+    it('should fail to release a non-existing stake', function(done) {
+        var amount = 500
+        var confidence = 8
+        var user = accounts[2]
+        rpc('evm_revert', [stakeSnapshot]).then(() => {
+        rpc('evm_snapshot').then(snapshot => {
+            stakeSnapshot = snapshot['result']
+        Numeraire.deployed().then(instance => {
+        web3.evm.increaseTime(4 * 7 * 24 * 60 * 60).then(function() {
+        assertThrows(instance.releaseStake, [accounts[5], 0, realTournament, realRound, true, {from: accounts[0]}]).then(() => {
+        done()
+    }) }) }) }) }) })
+
+    it('should fail to release a stake early', function(done) {
+        var amount = 500
+        var confidence = 8
+        var user = accounts[2]
+        rpc('evm_revert', [stakeSnapshot]).then(() => {
+        rpc('evm_snapshot').then(snapshot => {
+            stakeSnapshot = snapshot['result']
+        Numeraire.deployed().then(instance => {
+        web3.evm.increaseTime(4 * 7 * 24 * 60 * 60 - 60).then(function() { // 1 minute early
+        assertThrows(instance.releaseStake, [user, 0, realTournament, realRound, true, {from: accounts[0]}]).then(() => {
+        done()
+    }) }) }) }) }) })
+
+    it('should test destroying a stake')
+    it('should test destroying a non-existing stake (fail)')
+    it('should test destroying a resolved stake (fail)')
+    it('should test destroying a stake early (fail)')
     it('should test approving a contract to spend') // erc20
     it('should test approving a contract to spend with non-zero allowance (fail)')
     it('should test transferFrom a contract that\'s been approved') // erc20
     it('should test changeApproval')
     it('should test changeApproval (fail)')
     it('should test getMintable')
-    it('should test multisig')
-    it('should test multisig with not enough sigs (fail)')
     it('should test destructibility')
-    it('should test emergency stoppage')
     it('should test minting')
     it('should test minting too much (fail)')
-    it('should test releasing a stake')
-    it('should test releasing a stake with ether')
-    it('should test releasing a non-existing stake (fail)')
-    it('should test releasing a resolved stake (fail)')
-    it('should test releasing a stake early (fail)')
-    it('should test destroying a stake')
-    it('should test destroying a non-existing stake (fail)')
-    it('should test destroying a resolved stake (fail)')
-    it('should test destroying a stake early (fail)')
     it('should test staking on behalf')
     it('should test staking on behalf of user >1m (fail)')
     it('should test transferring from numerai')
