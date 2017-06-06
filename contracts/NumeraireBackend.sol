@@ -8,7 +8,7 @@ import "contracts/NumeraireShared.sol";
 contract NumeraireBackend is StoppableShareable, NumeraireShared {
 
     address public delegateContract;
-    bool contractUpgradable = true;
+    bool public contractUpgradable = true;
     address[] public previousDelegates;
 
     string public standard = "ERC20";
@@ -48,6 +48,7 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
     }
 
     function claimTokens(address _token) onlyOwner {
+        assert(_token != numerai);
         if (_token == 0x0) {
             msg.sender.transfer(this.balance);
             return;
@@ -97,6 +98,7 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
     function createRound(uint256 _tournamentID, uint256 _roundID, uint256 _resolutionTime) returns (bool ok) {
         var tournament = tournaments[_tournamentID];
         var round = tournament.rounds[_roundID];
+        require(tournament.creationTime > 0);
         require(round.creationTime == 0);
         tournament.roundIDs.push(_roundID);
         round.creationTime = block.timestamp;
