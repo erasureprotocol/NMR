@@ -73,7 +73,7 @@ var stakeSnapshot = 0
 
 // either equal or two is a second after one.  it's okay if one second has
 // passed during the test
-function almost_equal(one, two) {
+function almostEqual(one, two) {
   return two.equals(one) || two.equals(one.add(nmr_per_week.div(7 * 24 * 60 * 60)).ceil())
 }
 
@@ -90,271 +90,6 @@ contract('Numeraire', function(accounts) {
         nmrInstance.changeDelegate(delegateInstance.address, {from: multiSigAddresses[1]}).then(function() {
         done()
     }) }) }) }) })
-
-    it ("should set the delegate correctly", function(done) { // XXX
-        Numeraire.deployed().then(function(nmrInstance) {
-        NumeraireDelegate.deployed().then(function(delegateInstance) {
-        nmrInstance.delegateContract.call().then(function(delegateAddress) {
-            assert.equal(delegateAddress, delegateInstance.address)
-        done()
-    }) }) }) })
-
-    it("should have set initial_disbursement when deployed", function(done) {
-        Numeraire.deployed().then(function(nmrInstance) {
-        nmrInstance.initial_disbursement.call().then(function(disbursement) {
-            assert.equal(true, disbursement.equals(initialDisbursement))
-        done()
-    }) }) })
-
-    it("should not mint significantly more than the initial disbursement", function(done) {
-        var prevBalance
-        var nmr = Numeraire.deployed().then(function(instance) {
-            prevBalance = web3.eth.getBalance(accounts[0])
-            // try to mint initalDisbursement + 1 NMR (should allow ~0.16 NMR/second)
-            instance.mint(initialDisbursement.add(new Big(1000000000000000000)), {
-                    from: accounts[0],
-                    gasPrice: gasPrice,
-                    gas: gasAmount
-                })
-                .catch(ifUsingTestRPC)
-                .then(function() {
-                    checkAllGasSpent(gasAmount, gasPrice, accounts[0], prevBalance)
-                })
-                .then(function () {
-                    done()})
-                .catch(done)
-        })
-    })
-
-    it("should mint correctly", function(done) {
-        Numeraire.deployed().then(function(instance) {
-        instance.mint(10000000000, {from: accounts[0]}).then(function() {
-        instance.balanceOf.call(instance.address).then(function(balance) {
-            // check if Numerai has minted amount
-            assert.equal(balance.toNumber(), 10000000000)
-        done()
-    }) }) }) })
-
-    it("should increment totalSupply on mint", function(done) {
-        Numeraire.deployed().then(function(instance) {
-        instance.totalSupply.call().then(function(supply) {
-            // check if supply has increased by minted amounts
-            assert.equal(supply.toNumber(), 10000000000)
-        done()
-    }) }) })
-
-    it('should reduce mintable when minting', function(done) {
-        Numeraire.deployed().then(function(instance) {
-        instance.getMintable.call().then(function(last_disbursement) {
-        instance.mint(initialDisbursement, { from: accounts[0] }).then(function() {
-        instance.getMintable.call().then(function(disbursement) {
-            assert.equal(true, almost_equal(last_disbursement.sub(initialDisbursement), disbursement))
-        done()
-    }) }) }) }) })
-
-    it("should increase mintable 96153.846153846153846153 NMR per week", function(done) {
-        Numeraire.deployed().then(function(instance) {
-        instance.getMintable.call().then(oldDisbursement => {
-        instance.mint(500000, { from: accounts[0] }).then(() => {
-        web3.evm.increaseTime(7 * 24 * 60 * 60).then(() => {
-        instance.mint(20000000000, { from: accounts[0] }).then(() => {
-        instance.getMintable.call().then(newDisbursement => {
-            assert.equal(true, almost_equal(oldDisbursement.sub(500000).add(nmr_per_week).sub(20000000000), newDisbursement))
-        done()
-    }) }) }) }) }) }) })
-
-    it("should send NMR correctly from numerai account", function(done) {
-        var account_one = Numeraire.address
-        var account_two = accounts[2]
-        var amount = 1000000000
-
-        Numeraire.deployed().then(function(instance) {
-        instance.mint(amount, { from: accounts[0] }).then(function() {
-        instance.balanceOf.call(account_one).then(function(account_one_starting) {
-        instance.balanceOf.call(account_two).then(function(account_two_starting) {
-        instance.numeraiTransfer(account_two, amount, {from: accounts[0]}).then(function() {
-        instance.numeraiTransfer(account_two, amount, {from: multiSigAddresses[0]}).then(function() {
-        instance.balanceOf.call(account_one).then(function(account_one_ending) {
-        instance.balanceOf.call(account_two).then(function(account_two_ending) {
-            assert.equal(account_one_ending.toNumber(), account_one_starting.toNumber() - amount,
-                "Amount wasn't correctly taken from the sender")
-            assert.equal(account_two_ending.toNumber(), account_two_starting.toNumber() + amount,
-                "Amount wasn't correctly sent to the receiver")
-        done()
-    }) }) }) }) }) }) }) }) })
-
-    it('should create a tournament', (done) => { // XXX
-        Numeraire.deployed().then(function(instance) {
-        instance.createTournament(0).then(function(transaction) {
-            var block = web3.eth.getBlock(transaction.receipt.blockNumber)
-        instance.getTournament.call(0).then(function(tournament) {
-            creationTime = tournament[0]
-            numRounds = tournament[1].length
-            assert.equal(0, numRounds)
-            assert.equal(block.timestamp, creationTime.toNumber())
-        done()
-    }) }) }) })
-
-    it('should create a round', (done) => { // XXX
-        Numeraire.deployed().then(function(instance) {
-        instance.createTournament(50).then(function(transaction) {
-            var block = web3.eth.getBlock(transaction.receipt.blockNumber)
-            var resolutionTime = block.timestamp + (4 * 7 * 24 * 60 * 60)
-        instance.createRound(0, 51, resolutionTime).then(function(transaction) {
-            var block = web3.eth.getBlock(transaction.receipt.blockNumber)
-        instance.getRound.call(0, 51).then(function(round) {
-            creationTime = round[0]
-            realResolutionTime = round[1]
-            numStakes = round[2].length
-            assert.equal(creationTime.toNumber(), block.timestamp)
-            assert.equal(realResolutionTime.toNumber(), resolutionTime)
-            assert.equal(numStakes, 0)
-        instance.getTournament.call(0).then(function(tournament) {
-            numRounds = tournament[1].length
-            roundIDs = tournament[1]
-            assert.equal(1, numRounds)
-            // FIXME: This test doesn't work, although the contract is doing the right thing
-            // assert.equal(roundIDs, [51]) 
-        done()
-    }) }) }) }) }) })
-
-    it('should stake NMR on behalf of another account', (done) => {
-        numerai_hot_wallet = accounts[2]
-        var user_account = '0x1234'
-        var amount = 500
-        Numeraire.deployed().then(function(instance) {
-        instance.balanceOf.call(numerai_hot_wallet).then((balance) => {
-        instance.transfer(user_account, amount, {from: numerai_hot_wallet}).then(function() {
-        instance.stakeOnBehalf(user_account, amount, 0, 51, 5, {from: accounts[0]}).then(function(tx_id) {
-            var block = web3.eth.getBlock(tx_id.receipt.blockNumber)
-        instance.getStake.call(0, 51, user_account, block.timestamp, 0).then(function(stake) {
-            assert.equal(stake[0].toNumber(), 5)
-            assert.equal(stake[1].toNumber(), amount)
-            assert.equal(stake[2], false)
-            assert.equal(stake[3], false)
-        instance.balanceOf.call(numerai_hot_wallet).then((balance_after) => {
-            assert.equal(balance.toNumber() - amount, balance_after.toNumber())
-        done()
-    }) }) }) }) }) }) })
-
-
-    it('should stake NMR as self', (done) => { // XXX
-        var amount = 500
-        var userAccount = accounts[2]
-        Numeraire.deployed().then(function(instance) {
-        instance.balanceOf.call(userAccount).then((balance) => {
-        instance.stake(amount, 0, 51, 1, {from: userAccount}).then(function(tx_id) {
-            var block = web3.eth.getBlock(tx_id.receipt.blockNumber)
-        instance.getStake.call(0, 51, userAccount).then(function(stake) {
-            assert.equal(stake[0].toNumber(), 1)
-            assert.equal(stake[1].toNumber(), amount)
-            assert.equal(stake[2], false)
-            assert.equal(stake[3], false)
-        instance.balanceOf.call(userAccount).then((balance_after) => {
-            assert.equal(balance.toNumber() - amount, balance_after.toNumber())
-        done()
-    }) }) }) }) }) })
-
-    it("should send NMR correctly", function(done) { // XXX
-        var account_one = accounts[1]
-        var account_two = accounts[2]
-        var amount = 1000000000 - 1000
-        Numeraire.deployed().then(function(instance) {
-        instance.mint(amount, { from: accounts[0] }).then(function() {
-        instance.balanceOf.call(account_one).then(function(account_one_starting) {
-        instance.balanceOf.call(account_two).then(function(account_two_starting) {
-        instance.transfer(account_one, amount, { from: account_two }).then(function() {
-        instance.balanceOf.call(account_one).then(function(account_one_ending) {
-        instance.balanceOf.call(account_two).then(function(account_two_ending) {
-            assert.equal(account_one_ending.toNumber(), account_one_starting.toNumber() + amount,
-                "Amount wasn't correctly sent to the receiver")
-            assert.equal(account_two_ending.toNumber(), account_two_starting.toNumber() - amount,
-                "Amount wasn't correctly taken from the sender")
-        done()
-    }) }) }) }) }) }) }) })
-
-    it('should destroy stake', function(done) {
-        var numerai_hot_wallet = accounts[1]
-        var user_account = '0x4321'
-        var amount = 500
-        Numeraire.deployed().then(function(instance) {
-        rpc('evm_snapshot').then(function(snapshot) {
-            snapshotID = snapshot['result']
-        instance.transfer(user_account, amount, {from: numerai_hot_wallet}).then(function() {
-        instance.stakeOnBehalf(user_account, amount, 0, 51, 6, {from: accounts[0]}).then(function(tx_id) {
-        web3.evm.increaseTime(4 * 7 * 24 * 60 * 60).then(() => { // Make sure the block timestamp is new
-        instance.totalSupply.call().then(function(totalSupply) {
-            var originalTotalSupply = totalSupply.toNumber()
-            var block = web3.eth.getBlock(tx_id.receipt.blockNumber)
-        instance.destroyStake(user_account, 0, 51, {from: accounts[0]}).then(function() {
-        instance.totalSupply.call().then(function(newSupply) {
-            assert.equal(originalTotalSupply - amount, newSupply.toNumber())
-        instance.getStake.call(0, 51, user_account).then(function(stake) {
-            assert.equal(stake[0].toNumber(), 6)
-            assert.equal(stake[1].toNumber(), 0)
-            assert.equal(stake[2], false)
-            assert.equal(stake[3], true)
-        done()
-    }) }) }) }) }) }) }) }) }) })
-
-    it('should release stake', function(done) {
-        var numerai_hot_wallet = accounts[1]
-        var stakeBeforeRelease = 0
-        var amount = 500
-        var originalNumeraiBalance = 0
-        var staker = '0x0000000000000000000000000000000000005555'
-        var tournamentID = 51
-        var roundID = 52
-        rpc('evm_revert', [snapshotID]).then(function() {
-        Numeraire.deployed().then(function(instance) {
-        instance.createTournament(tournamentID).then(function(transaction) {
-            var block = web3.eth.getBlock(transaction.receipt.blockNumber)
-            var resolutionTime = block.timestamp + (4 * 7 * 24 * 60 * 60)
-        instance.createRound(tournamentID, roundID, resolutionTime).then(function() {
-            var originalBalance = web3.eth.getBalance(staker)
-        instance.transfer(staker, amount, {from: numerai_hot_wallet}).then(function() {
-        instance.stakeOnBehalf(staker, amount, tournamentID, roundID, 7, {from: accounts[0]}).then(function(tx_id) {
-            var block = web3.eth.getBlock(tx_id.receipt.blockNumber)
-        instance.balanceOf.call(instance.address).then(function(numeraiBalance) {
-            originalNumeraiBalance = numeraiBalance.toNumber()
-        instance.balanceOf.call(staker).then(function(originalStakerBalance) {
-        instance.getStake.call(tournamentID, roundID, staker).then(function(stake) {
-            stakeBeforeRelease = stake[1].toNumber()
-        web3.evm.increaseTime(4 * 7 * 24 * 60 * 60).then(function() {
-        instance.releaseStake(staker, 0, tournamentID, roundID, true, {from: accounts[0]}).then(function() {
-        instance.balanceOf.call(instance.address).then(function(numeraiBalance) {
-            assert.equal(originalNumeraiBalance, numeraiBalance.toNumber())
-        instance.balanceOf.call(staker).then(function(newStakerBalance) {
-            assert.equal(newStakerBalance.toNumber(), originalStakerBalance.toNumber() + amount)
-        instance.getStake.call(tournamentID, roundID, staker).then(function(stakeAfterRelease) {
-            assert.equal(stakeAfterRelease[0], 7)
-            assert.equal(stakeBeforeRelease - amount, stakeAfterRelease[1].toNumber()) // ?
-            assert.equal(stakeAfterRelease[2], true)
-            assert.equal(stakeAfterRelease[3], true)
-            var newBalance = web3.eth.getBalance(staker)
-            assert.equal(originalBalance.toNumber(), newBalance.toNumber())
-        done()
-    }) }) }) }) }) }) }) }) }) }) }) }) }) }) })
-
-    it('should transfer from an assignable deposit address', function(done) {
-        var assignedAddress = '0xf4240'
-        var amount = 25
-        var prevBalance = web3.eth.getBalance(accounts[0])
-        Numeraire.deployed().then(function(instance) {
-        instance.balanceOf.call(instance.address).then(function(originalNumeraiBalance) {
-        instance.numeraiTransfer(assignedAddress, amount, {from: accounts[0]}).then(function() {
-        instance.numeraiTransfer(assignedAddress, amount, {from: multiSigAddresses[0]}).then(function() {
-        instance.balanceOf.call(instance.address).then(function(newNumeraiBalance) {
-            assert.equal(originalNumeraiBalance.toNumber() - amount, newNumeraiBalance.toNumber()) 
-        instance.balanceOf.call(assignedAddress).then(function(assignedBalance) {
-            assert.equal(amount, assignedBalance.toNumber())
-        instance.withdraw(assignedAddress, instance.address, amount, {from: accounts[0]}).then(function() {
-        instance.balanceOf.call(instance.address).then(function(numeraiBalance) {
-            assert.equal(originalNumeraiBalance.toNumber(), numeraiBalance.toNumber())
-        instance.balanceOf.call(assignedAddress).then(function(assignedBalance) {
-            assert.equal(assignedBalance.toNumber(), 0)
-        done()
-    }) }) }) }) }) }) }) }) }) })
 
     // All tests above this line are deprecated, but don't remove them unless
     // there is an equivalent one below.
@@ -380,6 +115,115 @@ contract('Numeraire', function(accounts) {
         done()
     }) }) })
 
+    it("should mint correctly", function(done) {
+        Numeraire.deployed().then(function(instance) {
+        instance.mint(10000000000, {from: accounts[0]}).then(function() {
+        instance.balanceOf.call(instance.address).then(function(balance) {
+            assert.equal(balance.toNumber(), 10000000000)
+        instance.totalSupply.call().then(function(supply) {
+            assert.equal(supply.toNumber(), 10000000000)
+        done()
+    }) }) }) }) })
+
+    it("should not mint significantly more than the initial disbursement", function(done) {
+        Numeraire.deployed().then(instance => {
+            var prevBalance = web3.eth.getBalance(accounts[0])
+            // try to mint initalDisbursement + 1 NMR (should allow ~0.16 NMR/second)
+        assertThrows(instance.mint, [initialDisbursement.add(new Big(1000000000000000000)), {from: accounts[0]}]).then(() => {
+        done()
+    }) }) })
+
+    it('should reduce mintable when minting', function(done) {
+        Numeraire.deployed().then(instance => {
+        instance.getMintable.call().then(lastDisbursement => {
+        instance.mint(initialDisbursement, { from: accounts[0] }).then(() => {
+        instance.getMintable.call().then(disbursement => {
+            assert.equal(true, almostEqual(lastDisbursement.sub(initialDisbursement), disbursement))
+        done()
+    }) }) }) }) })
+
+    it("should increase mintable 96153.846153846153846153 NMR per week", function(done) {
+        Numeraire.deployed().then(function(instance) {
+        instance.getMintable.call().then(oldDisbursement => {
+        instance.mint(500000, { from: accounts[0] }).then(() => {
+        web3.evm.increaseTime(7 * 24 * 60 * 60).then(() => {
+        instance.mint(20000000000, { from: accounts[0] }).then(() => {
+        instance.getMintable.call().then(newDisbursement => {
+            assert.equal(true, almostEqual(oldDisbursement.sub(500000).add(nmr_per_week).sub(20000000000), newDisbursement))
+        done()
+    }) }) }) }) }) }) })
+
+    it("should send NMR from numerai account", function(done) {
+        var amount = 1000000000
+
+        Numeraire.deployed().then(instance => {
+        instance.mint(amount, { from: accounts[0] }).then(() => {
+        instance.balanceOf.call(instance.address).then(account_one_starting => {
+        instance.balanceOf.call(accounts[2]).then(account_two_starting => {
+        instance.numeraiTransfer(accounts[2], amount, {from: accounts[0]}).then(() => {
+        instance.numeraiTransfer(accounts[2], amount, {from: multiSigAddresses[0]}).then(() => {
+        instance.balanceOf.call(instance.address).then(account_one_ending => {
+        instance.balanceOf.call(accounts[2]).then(account_two_ending => {
+            assert.equal(account_one_ending.toNumber(), account_one_starting.toNumber() - amount,
+                "Amount wasn't correctly taken from the sender")
+            assert.equal(account_two_ending.toNumber(), account_two_starting.toNumber() + amount,
+                "Amount wasn't correctly sent to the receiver")
+        done()
+    }) }) }) }) }) }) }) }) })
+
+    it("should fail to send NMR from numerai account", function(done) {
+        Numeraire.deployed().then(instance => {
+        instance.balanceOf.call(instance.address).then(account_one_starting => {
+        instance.balanceOf.call(accounts[2]).then(account_two_starting => {
+        instance.numeraiTransfer(accounts[2], account_one_starting.plus(1), {from: accounts[0]}).then(() => {
+        assertThrows(instance.numeraiTransfer, [accounts[2], account_one_starting.plus(1), {from: multiSigAddresses[0]}]).then(() => {
+        done()
+    }) }) }) }) }) })
+
+    it("should have set initial_disbursement when deployed", function(done) {
+        Numeraire.deployed().then(function(nmrInstance) {
+        nmrInstance.initial_disbursement.call().then(function(disbursement) {
+            assert.equal(true, disbursement.equals(initialDisbursement))
+        done()
+    }) }) })
+
+    it('should withdraw from an assigned address', function(done) {
+        var assignedAddress = '0xf4240'
+        var amount = 25
+        Numeraire.deployed().then(instance => {
+        instance.balanceOf.call(instance.address).then(originalNumeraiBalance => {
+        instance.numeraiTransfer(assignedAddress, amount, {from: accounts[0]}).then(() => {
+        instance.numeraiTransfer(assignedAddress, amount, {from: multiSigAddresses[0]}).then(() => {
+        instance.balanceOf.call(instance.address).then(newNumeraiBalance => {
+            assert.equal(originalNumeraiBalance.toNumber() - amount, newNumeraiBalance.toNumber()) 
+        instance.balanceOf.call(assignedAddress).then(assignedBalance => {
+            assert.equal(amount, assignedBalance.toNumber())
+        instance.withdraw(assignedAddress, instance.address, amount, {from: accounts[0]}).then(() => {
+        instance.balanceOf.call(instance.address).then(numeraiBalance => {
+            assert.equal(originalNumeraiBalance.toNumber(), numeraiBalance.toNumber())
+        instance.balanceOf.call(assignedAddress).then(assignedBalance => {
+            assert.equal(assignedBalance.toNumber(), 0)
+        done()
+    }) }) }) }) }) }) }) }) }) })
+
+    it('should fail to withdraw from an address > 1m', function(done) {
+        var assignedAddress = '0xf4241'
+        var amount = 25
+        Numeraire.deployed().then(instance => {
+        instance.numeraiTransfer(assignedAddress, amount, {from: accounts[0]}).then(() => {
+        instance.numeraiTransfer(assignedAddress, amount, {from: multiSigAddresses[0]}).then(() => {
+        assertThrows(instance.withdraw, [assignedAddress, instance.address, amount, {from: accounts[0]}]).then(() => {
+        done()
+    }) }) }) }) })
+
+    it('should fail to withdraw too much from an assigned address', function(done) {
+        var assignedAddress = '0xf4240'
+        Numeraire.deployed().then(instance => {
+        instance.balanceOf.call(assignedAddress).then(assignedBalance => {
+        assertThrows(instance.withdraw, [assignedAddress, instance.address, assignedBalance.plus(1), {from: accounts[0]}]).then(() => {
+        done()
+    }) }) }) })
+
     it('should test totalSupply', function(done) { // erc20
         Numeraire.deployed().then(instance => {
         instance.totalSupply().then(totalSupply => {
@@ -395,8 +239,6 @@ contract('Numeraire', function(accounts) {
             assert(balance.lte(initialDisbursement.mul(2)))
         done()
     }) }) })
-
-    it('should test allowance') // erc20
 
     it('should change delegate', function(done) {
         var zero = '0x0000000000000000000000000000000000000000'
@@ -445,8 +287,6 @@ contract('Numeraire', function(accounts) {
             assert(web3.eth.getBalance(accounts[0]).gte(oldBalance.minus((gasAmount + 21000) * gasPrice)))
         done()
     }) }) })
-
-    it('should test claiming another token')
 
     it('should disallow claiming NMR', function(done) {
         var amount = new Big('1000000000000000') // .001 NMR
@@ -606,6 +446,36 @@ contract('Numeraire', function(accounts) {
         assertThrows(instance.stake, [amount, realTournament, realRound2, 8, {from: user}]).then(() => {
         done()
     }) }) }) }) }) }) })
+
+    it('should stake on behalf of another account', (done) => {
+        numerai_hot_wallet = accounts[2]
+        var user_account = '0x1234'
+        var amount = 500
+        Numeraire.deployed().then(function(instance) {
+        instance.balanceOf.call(numerai_hot_wallet).then((balance) => {
+        instance.transfer(user_account, amount, {from: numerai_hot_wallet}).then(function() {
+        instance.stakeOnBehalf(user_account, amount, realTournament, realRound, 5, {from: accounts[0]}).then(function(tx) {
+            var block = web3.eth.getBlock(tx.receipt.blockNumber)
+        instance.getStake.call(realTournament, realRound, user_account, block.timestamp, 0).then(function(stake) {
+            assert.equal(stake[0].toNumber(), 5)
+            assert.equal(stake[1].toNumber(), amount)
+            assert.equal(stake[2], false)
+            assert.equal(stake[3], false)
+        instance.balanceOf.call(numerai_hot_wallet).then((balance_after) => {
+            assert.equal(balance.toNumber() - amount, balance_after.toNumber())
+        done()
+    }) }) }) }) }) }) })
+
+    it('should fail stake on behalf of an account > 1m', (done) => {
+        numerai_hot_wallet = accounts[2]
+        var user_account = '0xf4241'
+        var amount = 500
+        Numeraire.deployed().then(function(instance) {
+        instance.balanceOf.call(numerai_hot_wallet).then((balance) => {
+        instance.transfer(user_account, amount, {from: numerai_hot_wallet}).then(function() {
+        assertThrows(instance.stakeOnBehalf, [user_account, amount, realTournament, realRound, 5, {from: accounts[0]}]).then(function(tx) {
+        done()
+    }) }) }) }) })
 
     it('should transfer', function(done) { // erc20
         var amount = 500
@@ -861,20 +731,88 @@ contract('Numeraire', function(accounts) {
         done()
     }) }) }) }) }) }) }) }) })
 
-    it('should test approving a contract to spend') // erc20
-    it('should test approving a contract to spend with non-zero allowance (fail)')
-    it('should test transferFrom a contract that\'s been approved') // erc20
-    it('should test changeApproval')
-    it('should test changeApproval (fail)')
-    it('should test getMintable')
-    it('should test minting')
-    it('should test minting too much (fail)')
-    it('should test staking on behalf')
-    it('should test staking on behalf of user >1m (fail)')
-    it('should test transferring from numerai')
-    it('should test transferring too much from numerai (fail)')
-    it('should test withdrawing')
-    it('should test withdrawing from >1m (fail)')
-    it('should test withdrawing too much (fail)')
-    it('should test arithmetic safety')
+    it('should approve', function(done) {
+        var user = accounts[2]
+        var contract = accounts[3]
+        var amount = 500
+        Numeraire.deployed().then(instance => {
+        instance.numeraiTransfer(user, amount, {from: accounts[0]}).then(() => {
+        instance.numeraiTransfer(user, amount, {from: multiSigAddresses[1]}).then(() => {
+        instance.approve(contract, amount, {from: user}).then(() => {
+        instance.allowance(user, contract).then(allowance => {
+            assert(allowance.equals(amount))
+        done()
+    }) }) }) }) }) })
+
+    it('should fail to approve because allowance is != 0', function(done) {
+        var user = accounts[2]
+        var contract = accounts[3]
+        var amount = 300
+        Numeraire.deployed().then(instance => {
+        instance.numeraiTransfer(user, amount, {from: accounts[0]}).then(() => {
+        instance.numeraiTransfer(user, amount, {from: multiSigAddresses[1]}).then(() => {
+        assertThrows(instance.approve, [contract, amount, {from: user}]).then(() => {
+        done()
+    }) }) }) }) })
+
+    it('should change approval safely', function(done) {
+        var user = accounts[2]
+        var contract = accounts[3]
+        var oldAmount = 500
+        var newAmount = 300
+        Numeraire.deployed().then(instance => {
+        instance.changeApproval(contract, oldAmount, newAmount, {from: user}).then(() => {
+        instance.allowance(user, contract).then(allowance => {
+            assert(allowance.equals(newAmount))
+        done()
+    }) }) }) })
+
+    it('should fail to change approval safely', function(done) {
+        var user = accounts[2]
+        var contract = accounts[3]
+        var oldAmount = 500
+        var newAmount = 300
+        Numeraire.deployed().then(instance => {
+        assertThrows(instance.changeApproval, [contract, oldAmount, newAmount, {from: user}]).then(() => {
+        done()
+    }) }) })
+
+    it('should allow contract to transferFrom another account', function(done) {
+        var user = accounts[2]
+        var contract = accounts[3]
+        var amount = 200
+        Numeraire.deployed().then(instance => {
+        instance.allowance(user, contract).then(startingAllowance => {
+        instance.balanceOf(user).then(startingFromBalance => {
+        instance.balanceOf(accounts[4]).then(startingToBalance => {
+        instance.transferFrom(user, accounts[4], amount, {from: contract}).then(() => {
+        instance.balanceOf(user).then(endingFromBalance => {
+            assert(endingFromBalance.equals(startingFromBalance.minus(amount)))
+        instance.balanceOf(accounts[4]).then(endingToBalance => {
+            assert(endingToBalance.equals(startingToBalance.plus(amount)))
+        instance.allowance(user, contract).then(endingAllowance => {
+            assert(endingAllowance.equals(startingAllowance.minus(amount)))
+        done()
+    }) }) }) }) }) }) }) }) })
+
+    it('should disallow transferFrom greater than allowance', function(done) {
+        var user = accounts[2]
+        var contract = accounts[3]
+        Numeraire.deployed().then(instance => {
+        instance.allowance(user, contract).then(allowance => {
+        instance.balanceOf(user).then(startingFromBalance => {
+        instance.balanceOf(accounts[4]).then(startingToBalance => {
+        assertThrows(instance.transferFrom, [user, accounts[4], allowance.plus(1), {from: contract}]).then(() => {
+        done()
+    }) }) }) }) }) })
+
+    // if you want to see this fail, remove the require line in mint, and change
+    // the safeAdd's to simple addition
+    it('should reject overflowing value', function(done) {
+        // 2^256 - 1
+        var tooMuch = new Big('115792089237316195423570985008687907853269984665640564039457584007913129639935')
+        Numeraire.deployed().then(instance => {
+        assertThrows(instance.mint, [tooMuch]).then(() => {
+        done()
+    }) }) })
 })
