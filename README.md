@@ -25,7 +25,7 @@ Authors: [Alex Mingoia](https://github.com/alexmingoia), [Joey Krug](https://git
 - Install dependencies: `npm install`
 - Install truffle: `sudo npm install -g truffle`
 - Install testrpc: `sudo npm install -g ethereumjs-testrpc`
-- Install solc.  
+- Install solc:
   - On Ubuntu, this is:
     ```
     sudo add-apt-repository ppa:ethereum/ethereum
