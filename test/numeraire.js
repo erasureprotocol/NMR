@@ -701,6 +701,34 @@ contract('Numeraire', function(accounts) {
         done()
     }) }) }) }) }) })
 
+    // this has to be done before the other stakeRelease tests because
+    // evm_revert does not reset the clock
+    it('should fail to release a stake early', function(done) {
+        var amount = 500
+        var confidence = 8
+        var user = accounts[2]
+        rpc('evm_revert', [stakeSnapshot]).then(() => {
+        rpc('evm_snapshot').then(snapshot => {
+            stakeSnapshot = snapshot['result']
+        Numeraire.deployed().then(instance => {
+        web3.evm.increaseTime(4 * 7 * 24 * 60 * 60 - 60).then(function() { // 1 minute early
+        assertThrows(instance.releaseStake, [user, 0, realTournament, realRound, true, {from: accounts[0]}]).then(() => {
+        done()
+    }) }) }) }) }) })
+
+    // ibid
+    it('should fail to destroy a stake early', function(done) {
+        var amount = 500
+        var confidence = 8
+        var user = accounts[2]
+        rpc('evm_revert', [stakeSnapshot]).then(() => {
+        rpc('evm_snapshot').then(snapshot => {
+            stakeSnapshot = snapshot['result']
+        Numeraire.deployed().then(instance => {
+        assertThrows(instance.destroyStake, [user, realTournament, realRound, {from: accounts[0]}]).then(() => {
+        done()
+    }) }) }) }) })
+
     it('should release a stake', function(done) {
         var amount = 500
         var confidence = 8
@@ -729,6 +757,8 @@ contract('Numeraire', function(accounts) {
         var user = accounts[2]
         Numeraire.deployed().then(instance => {
         rpc('evm_revert', [stakeSnapshot]).then(() => {
+        rpc('evm_snapshot').then(snapshot => {
+            stakeSnapshot = snapshot['result']
             web3.eth.sendTransaction({from: accounts[0], to: instance.address, value: etherAmount, gasLimit: 23000, gasPrice: gasPrice})
         web3.evm.increaseTime(4 * 7 * 24 * 60 * 60).then(function() {
         instance.balanceOf(user).then(startingBalance => {
@@ -743,7 +773,7 @@ contract('Numeraire', function(accounts) {
             assert.equal(stake[2], true)
             assert.equal(stake[3], true)
         done()
-    }) }) }) }) }) }) }) })
+    }) }) }) }) }) }) }) }) })
 
     it('should fail to release a resolved stake', function(done) {
         var amount = 500
@@ -772,7 +802,7 @@ contract('Numeraire', function(accounts) {
         done()
     }) }) }) }) }) })
 
-    it('should fail to release a stake early', function(done) {
+    it('should destroy a stake', function(done) {
         var amount = 500
         var confidence = 8
         var user = accounts[2]
@@ -780,22 +810,63 @@ contract('Numeraire', function(accounts) {
         rpc('evm_snapshot').then(snapshot => {
             stakeSnapshot = snapshot['result']
         Numeraire.deployed().then(instance => {
-        web3.evm.increaseTime(4 * 7 * 24 * 60 * 60 - 60).then(function() { // 1 minute early
-        assertThrows(instance.releaseStake, [user, 0, realTournament, realRound, true, {from: accounts[0]}]).then(() => {
+        instance.balanceOf(user).then(startingBalance => {
+        instance.totalSupply().then(startingSupply => {
+        web3.evm.increaseTime(4 * 7 * 24 * 60 * 60).then(function() {
+        instance.destroyStake(user, realTournament, realRound, {from: accounts[0]}).then(() => {
+        instance.balanceOf(user).then(endingBalance => {
+            assert(endingBalance.equals(startingBalance))
+        instance.totalSupply().then(endingSupply => {
+            assert(endingSupply.equals(startingSupply.minus(amount)))
+        instance.getStake(realTournament, realRound, user).then(stake => {
+            assert.equal(stake[0], confidence)
+            assert.equal(stake[1], 0)
+            assert.equal(stake[2], false)
+            assert.equal(stake[3], true)
         done()
-    }) }) }) }) }) })
+    }) }) }) }) }) }) }) }) }) }) })
 
-    it('should test destroying a stake')
-    it('should test destroying a non-existing stake (fail)')
-    it('should test destroying a resolved stake (fail)')
-    it('should test destroying a stake early (fail)')
+    it('should fail to destroy a resolved stake', function(done) {
+        var amount = 500
+        var confidence = 8
+        var user = accounts[2]
+        Numeraire.deployed().then(instance => {
+        instance.getStake(realTournament, realRound, user).then(stake => {
+            assert.equal(stake[0], confidence)
+            assert.equal(stake[1], 0)
+            assert.equal(stake[2], false)
+            assert.equal(stake[3], true)
+        assertThrows(instance.destroyStake, [user, realTournament, realRound, {from: accounts[0]}]).then(() => {
+        done()
+    }) }) }) })
+
+    it('should fail to destroy a non-existing stake', function(done) {
+        var amount = 500
+        var confidence = 8
+        var user = accounts[2]
+        rpc('evm_revert', [stakeSnapshot]).then(() => {
+        rpc('evm_snapshot').then(snapshot => {
+            stakeSnapshot = snapshot['result']
+        Numeraire.deployed().then(instance => {
+        instance.balanceOf(user).then(startingBalance => {
+        web3.evm.increaseTime(4 * 7 * 24 * 60 * 60).then(function() {
+        instance.destroyStake(user, realTournament, realRound, {from: accounts[0]}).then(() => {
+        instance.balanceOf(user).then(endingBalance => {
+            assert(endingBalance.equals(startingBalance))
+        instance.getStake(realTournament, realRound, user).then(stake => {
+            assert.equal(stake[0], confidence)
+            assert.equal(stake[1], 0)
+            assert.equal(stake[2], false)
+            assert.equal(stake[3], true)
+        done()
+    }) }) }) }) }) }) }) }) })
+
     it('should test approving a contract to spend') // erc20
     it('should test approving a contract to spend with non-zero allowance (fail)')
     it('should test transferFrom a contract that\'s been approved') // erc20
     it('should test changeApproval')
     it('should test changeApproval (fail)')
     it('should test getMintable')
-    it('should test destructibility')
     it('should test minting')
     it('should test minting too much (fail)')
     it('should test staking on behalf')
