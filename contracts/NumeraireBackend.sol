@@ -95,13 +95,15 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
         return true;
     }
 
-    function createRound(uint256 _tournamentID, uint256 _roundID, uint256 _resolutionTime) returns (bool ok) {
+    function createRound(uint256 _tournamentID, uint256 _roundID, uint256 _endTime, uint256 _resolutionTime) returns (bool ok) {
         var tournament = tournaments[_tournamentID];
         var round = tournament.rounds[_roundID];
+        require(_endTime <= _resolutionTime);
         require(tournament.creationTime > 0);
         require(round.creationTime == 0);
         tournament.roundIDs.push(_roundID);
         round.creationTime = block.timestamp;
+        round.endTime = _endTime;
         round.resolutionTime = _resolutionTime;
         RoundCreated(_tournamentID, _roundID, round.resolutionTime);
         return true;
@@ -112,9 +114,9 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
         return (tournament.creationTime, tournament.roundIDs);
     }
 
-    function getRound(uint256 _tournamentID, uint256 _roundID) constant returns (uint256, uint256, address[]) {
+    function getRound(uint256 _tournamentID, uint256 _roundID) constant returns (uint256, uint256, uint256, address[]) {
         var round = tournaments[_tournamentID].rounds[_roundID];
-        return (round.creationTime, round.resolutionTime, round.stakeAddresses);
+        return (round.creationTime, round.endTime, round.resolutionTime, round.stakeAddresses);
     }
 
     function getStake(uint256 _tournamentID, uint256 _roundID, address _staker) constant returns (uint256, uint256, bool, bool) {

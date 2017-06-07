@@ -26,11 +26,6 @@ web3.evm.increaseTime = function(time) {
     return rpc('evm_increaseTime', [time])
 }
 
-function checkAllGasSpent(gasAmount, gasPrice, account, prevBalance) {
-    var newBalance = web3.eth.getBalance(account)
-    assert.equal(prevBalance.minus(newBalance).toNumber(), gasAmount * gasPrice, 'Incorrect amount of gas used')
-}
-
 function ifUsingTestRPC() {
     return
 }
@@ -58,7 +53,7 @@ function assertThrows (fn, args) {
 
 // Some default values for gas
 var gasAmount = 3000000
-var gasPrice = 20000000000
+var gasPrice = 20000000
 var initialDisbursement = new Big(1500000000000000000000000)
 var nmr_per_week = new Big(96153846153846100000000).add(53846153)
 var realTournament = 5
@@ -319,13 +314,15 @@ contract('Numeraire', function(accounts) {
         instance.getTournament(realTournament).then(tournament => {
             assert.isAbove(tournament[0], 0)
             var block = web3.eth.getBlock("latest")
+            var endTime = block.timestamp + (1 * 7 * 24 * 60 * 60)
             var resolutionTime = block.timestamp + (4 * 7 * 24 * 60 * 60)
-        instance.createRound(realTournament, realRound, resolutionTime).then(transaction => {
+        instance.createRound(realTournament, realRound, endTime, resolutionTime).then(transaction => {
         instance.getRound(realTournament, realRound).then(round => {
             var newBlock = web3.eth.getBlock(transaction.receipt.blockNumber)
             assert.equal(round[0].toNumber(), newBlock.timestamp)
-            assert.equal(round[1].toNumber(), resolutionTime)
-            assert.equal(round[2].length, 0)
+            assert.equal(round[1].toNumber(), endTime)
+            assert.equal(round[2].toNumber(), resolutionTime)
+            assert.equal(round[3].length, 0)
         instance.getTournament(realTournament).then(tournament => {
             assert.equal(tournament[1][0].toNumber(), realRound)
         done()
@@ -336,8 +333,9 @@ contract('Numeraire', function(accounts) {
         instance.getTournament(realTournament+1).then(tournament => {
             assert.equal(tournament[0], 0)
             var block = web3.eth.getBlock("latest")
+            var endTime = block.timestamp + (1 * 7 * 24 * 60 * 60)
             var resolutionTime = block.timestamp + (4 * 7 * 24 * 60 * 60)
-        assertThrows(instance.createRound, [realTournament+1, realRound, resolutionTime]).then(() => {
+        assertThrows(instance.createRound, [realTournament+1, realRound, endTime, resolutionTime]).then(() => {
         done()
     }) }) }) })
 
@@ -347,8 +345,21 @@ contract('Numeraire', function(accounts) {
             assert.isAbove(tournament[0], 0)
             assert.equal(tournament[1][0].toNumber(), realRound)
             var block = web3.eth.getBlock("latest")
+            var endTime = block.timestamp + (1 * 7 * 24 * 60 * 60)
             var resolutionTime = block.timestamp + (4 * 7 * 24 * 60 * 60)
-        assertThrows(instance.createRound, [realTournament, realRound, resolutionTime]).then(() => {
+        assertThrows(instance.createRound, [realTournament, realRound, endTime, resolutionTime]).then(() => {
+        done()
+    }) }) }) })
+
+    it('should fail to create a round with an endTime after the resolutionTime', function(done) {
+        Numeraire.deployed().then(instance => {
+        instance.getTournament(realTournament).then(tournament => {
+            assert.isAbove(tournament[0], 0)
+            assert.equal(tournament[1][0].toNumber(), realRound)
+            var block = web3.eth.getBlock("latest")
+            var endTime = block.timestamp + (1 * 7 * 24 * 60 * 60)
+            var resolutionTime = endTime - 1
+        assertThrows(instance.createRound, [realTournament, realRound2, endTime, resolutionTime]).then(() => {
         done()
     }) }) }) })
 
@@ -370,7 +381,7 @@ contract('Numeraire', function(accounts) {
         instance.balanceOf(user).then(endingBalance => {
             assert(startingBalance.minus(amount).equals(endingBalance))
         instance.getRound(realTournament, realRound).then(round => {
-            assert.equal(round[2][0], user)
+            assert.equal(round[3][0], user)
         rpc('evm_snapshot').then(function(snapshot) {
             stakeSnapshot = snapshot['result']
         done()
@@ -434,7 +445,7 @@ contract('Numeraire', function(accounts) {
         done()
     }) }) })
 
-    it('should fail to stake on a resolved round', function(done) {
+    it('should fail to stake on an ended round', function(done) {
         var amount = 500
         var user = accounts[2]
         Numeraire.deployed().then(instance => {
@@ -442,7 +453,9 @@ contract('Numeraire', function(accounts) {
         instance.numeraiTransfer(user, amount, {from: multiSigAddresses[0]}).then(() => {
         instance.balanceOf(user).then(startingBalance => {
             assert(startingBalance.gte(amount))
-        instance.createRound(realTournament, realRound2, 0).then(() => {
+            var block = web3.eth.getBlock("latest")
+            var resolutionTime = block.timestamp + (4 * 7 * 24 * 60 * 60)
+        instance.createRound(realTournament, realRound2, block.timestamp, resolutionTime).then(() => {
         assertThrows(instance.stake, [amount, realTournament, realRound2, 8, {from: user}]).then(() => {
         done()
     }) }) }) }) }) }) })
@@ -581,7 +594,7 @@ contract('Numeraire', function(accounts) {
         rpc('evm_snapshot').then(snapshot => {
             stakeSnapshot = snapshot['result']
         Numeraire.deployed().then(instance => {
-        web3.evm.increaseTime(4 * 7 * 24 * 60 * 60 - 60).then(function() { // 1 minute early
+        web3.evm.increaseTime(4 * 7 * 24 * 60 * 60 - 60).then(function() { // 1 minute before resolutionTime
         assertThrows(instance.releaseStake, [user, 0, realTournament, realRound, true, {from: accounts[0]}]).then(() => {
         done()
     }) }) }) }) }) })

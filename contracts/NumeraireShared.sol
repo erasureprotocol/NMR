@@ -32,6 +32,7 @@ contract NumeraireShared is Safe {
 
     struct Round {
         uint256 creationTime;
+        uint256 endTime;
         uint256 resolutionTime;
         address[] stakeAddresses;
         mapping (address => Stake) stakes;  // address of staker

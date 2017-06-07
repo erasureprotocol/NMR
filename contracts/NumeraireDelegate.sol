@@ -96,7 +96,7 @@ contract NumeraireDelegate is StoppableShareable, NumeraireShared {
         require(balanceOf[_staker] >= _value); // Check for sufficient funds
         require(tournament.creationTime > 0); // This tournament must be initialized
         require(round.creationTime > 0); // This round must be initialized
-        require(round.resolutionTime > block.timestamp); // Can't stake after round ends
+        require(round.endTime > block.timestamp); // Can't stake after round ends
         require(_value > 0); // Can't stake zero NMR
 
         if (stake.confidence == 0) {
