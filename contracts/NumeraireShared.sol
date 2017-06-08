@@ -32,14 +32,18 @@ contract NumeraireShared is Safe {
 
     struct Round {
         uint256 creationTime;
+        uint256 endTime;
         uint256 resolutionTime;
-        address[] stakeAddresses;
-        mapping (address => Stake) stakes;  // address of staker
+        mapping (address => mapping (bytes32 => Stake)) stakes;  // address of staker
     }
 
+    // The order is important here because of its packing characteristics.
+    // Particularly, `amount` and `confidence` are in the *same* word, so
+    // Solidity can update both at the same time (if the optimizer can figure
+    // out that you're updating both).  This makes `stake()` cheap.
     struct Stake {
-        uint256 amount; // Once the stake is resolved, this becomes 0
-        uint256 confidence;
+        uint128 amount; // Once the stake is resolved, this becomes 0
+        uint128 confidence;
         bool successful;
         bool resolved;
     }
@@ -48,11 +52,11 @@ contract NumeraireShared is Safe {
     event Mint(uint256 value);
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
-    event Staked(address indexed staker, uint256 totalAmountStaked, uint256 confidence, uint256 indexed tournamentID, uint256 indexed roundID);
-    event RoundCreated(uint256 indexed tournamentID, uint256 indexed roundID, uint256 resolutionTime);
+    event Staked(address indexed staker, bytes32 tag, uint256 totalAmountStaked, uint256 confidence, uint256 indexed tournamentID, uint256 indexed roundID);
+    event RoundCreated(uint256 indexed tournamentID, uint256 indexed roundID, uint256 endTime, uint256 resolutionTime);
     event TournamentCreated(uint256 indexed tournamentID);
-    event StakeDestroyed(uint256 indexed tournamentID, uint256 indexed roundID, address indexed stakerAddress);
-    event StakeReleased(uint256 indexed tournamentID, uint256 indexed roundID, address indexed stakerAddress, uint256 etherReward);
+    event StakeDestroyed(uint256 indexed tournamentID, uint256 indexed roundID, address indexed stakerAddress, bytes32 tag);
+    event StakeReleased(uint256 indexed tournamentID, uint256 indexed roundID, address indexed stakerAddress, bytes32 tag, uint256 etherReward);
 
     // Calculate allowable disbursement
     function getMintable() constant returns (uint256) {

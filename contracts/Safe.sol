@@ -22,6 +22,11 @@ contract Safe {
         return c;
     }
 
+    function shrink128(uint a) internal returns (uint128) {
+        assert(a < 0x100000000000000000000000000000000);
+        return uint128(a);
+    }
+
     // mitigate short address attack
     modifier onlyPayloadSize(uint numWords) {
         assert(msg.data.length == numWords * 32 + 4);

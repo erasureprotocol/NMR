@@ -28,9 +28,9 @@ contract NumeraireDelegate is StoppableShareable, NumeraireShared {
     }
 
     // Numerai calls this function to release staked tokens when the staked predictions were successful
-    function releaseStake(address _staker, uint256 _etherValue, uint256 _tournamentID, uint256 _roundID, bool _successful) onlyOwner stopInEmergency returns (bool ok) {
+    function releaseStake(address _staker, bytes32 _tag, uint256 _etherValue, uint256 _tournamentID, uint256 _roundID, bool _successful) onlyOwner stopInEmergency returns (bool ok) {
         var round = tournaments[_tournamentID].rounds[_roundID];
-        var stake = round.stakes[_staker];
+        var stake = round.stakes[_staker][_tag];
         var originalStakeAmount = stake.amount;
 
         require(stake.amount > 0);
@@ -52,14 +52,14 @@ contract NumeraireDelegate is StoppableShareable, NumeraireShared {
             }
         }
 
-        StakeReleased(_tournamentID, _roundID, _staker, _etherValue);
+        StakeReleased(_tournamentID, _roundID, _staker, _tag, _etherValue);
         return true;
     }
 
     // Destroy staked tokens if the predictions were not successful
-    function destroyStake(address _staker, uint256 _tournamentID, uint256 _roundID) onlyOwner stopInEmergency returns (bool ok) {
+    function destroyStake(address _staker, bytes32 _tag, uint256 _tournamentID, uint256 _roundID) onlyOwner stopInEmergency returns (bool ok) {
         var round = tournaments[_tournamentID].rounds[_roundID];
-        var stake = round.stakes[_staker];
+        var stake = round.stakes[_staker][_tag];
         var originalStakeAmount = stake.amount;
 
         require(stake.amount > 0);
@@ -71,53 +71,45 @@ contract NumeraireDelegate is StoppableShareable, NumeraireShared {
         stake.resolved = true;
         stake.successful = false;
 
-        StakeDestroyed(_tournamentID, _roundID, _staker);
+        StakeDestroyed(_tournamentID, _roundID, _staker, _tag);
         return true;
     }
 
     // Anyone but Numerai can stake on themselves
-    function stake(uint256 _value, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) stopInEmergency returns (bool ok) {
-        return _stake(msg.sender, _value, _tournamentID, _roundID, _confidence);
+    function stake(uint256 _value, bytes32 _tag, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) stopInEmergency returns (bool ok) {
+        return _stake(msg.sender, _value, _tag, _tournamentID, _roundID, _confidence);
     }
 
     // Only Numerai can stake on behalf of other accounts. _stake_owner will always be Numerai's hot wallet
-    function stakeOnBehalf(address _staker, uint256 _value, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) onlyOwner stopInEmergency returns (bool ok) {
+    function stakeOnBehalf(address _staker, uint256 _value, bytes32 _tag, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) onlyOwner stopInEmergency returns (bool ok) {
         var max_deposit_address = 1000000;
         require(_staker <= max_deposit_address);
-        return _stake(_staker, _value, _tournamentID, _roundID, _confidence);
+        return _stake(_staker, _value, _tag, _tournamentID, _roundID, _confidence);
     }
 
-    function _stake(address _staker, uint256 _value, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) stopInEmergency internal returns (bool ok) {
+    function _stake(address _staker, uint256 _value, bytes32 _tag, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) stopInEmergency internal returns (bool ok) {
         var tournament = tournaments[_tournamentID];
         var round = tournament.rounds[_roundID];
-        var stake = round.stakes[_staker];
+        var stake = round.stakes[_staker][_tag];
 
         require(!isOwner(_staker) && _staker != numerai); // Numerai cannot stake on itself
         require(balanceOf[_staker] >= _value); // Check for sufficient funds
         require(tournament.creationTime > 0); // This tournament must be initialized
         require(round.creationTime > 0); // This round must be initialized
-        require(round.resolutionTime > block.timestamp); // Can't stake after round ends
+        require(round.endTime > block.timestamp); // Can't stake after round ends
         require(_value > 0); // Can't stake zero NMR
 
-        if (stake.confidence == 0) {
-            stake.confidence = _confidence;
-        }
-        else if (stake.confidence <= _confidence) {
-            stake.confidence = _confidence;
-        }
-        else {
-            revert(); // Confidence can only increased or set to the same, non-zero number
-        }
+        require(stake.confidence == 0 || stake.confidence <= _confidence);
 
-        if (stake.amount <= 0) {
-            round.stakeAddresses.push(_staker);
-        }
+        // Keep these two lines together so that the Solidity optimizer can
+        // merge them into a single SSTORE.
+        stake.amount = shrink128(safeAdd(stake.amount, _value));
+        stake.confidence = shrink128(_confidence);
 
-        stake.amount = safeAdd(stake.amount, _value);
         balanceOf[_staker] = safeSubtract(balanceOf[_staker], _value);
 
         // Notify anyone listening.
-        Staked(_staker, stake.amount, stake.confidence, _tournamentID, _roundID);
+        Staked(_staker, _tag, stake.amount, stake.confidence, _tournamentID, _roundID);
 
         return true;
     }
