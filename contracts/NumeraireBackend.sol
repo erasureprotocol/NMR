@@ -105,7 +105,7 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
         round.creationTime = block.timestamp;
         round.endTime = _endTime;
         round.resolutionTime = _resolutionTime;
-        RoundCreated(_tournamentID, _roundID, round.resolutionTime);
+        RoundCreated(_tournamentID, _roundID, round.endTime, round.resolutionTime);
         return true;
     }
 
