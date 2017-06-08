@@ -322,7 +322,6 @@ contract('Numeraire', function(accounts) {
             assert.equal(round[0].toNumber(), newBlock.timestamp)
             assert.equal(round[1].toNumber(), endTime)
             assert.equal(round[2].toNumber(), resolutionTime)
-            assert.equal(round[3].length, 0)
         instance.getTournament(realTournament).then(tournament => {
             assert.equal(tournament[1][0].toNumber(), realRound)
         done()
@@ -380,12 +379,10 @@ contract('Numeraire', function(accounts) {
             assert.equal(stake[3], false)
         instance.balanceOf(user).then(endingBalance => {
             assert(startingBalance.minus(amount).equals(endingBalance))
-        instance.getRound(realTournament, realRound).then(round => {
-            assert.equal(round[3][0], user)
         rpc('evm_snapshot').then(function(snapshot) {
             stakeSnapshot = snapshot['result']
         done()
-    }) }) }) }) }) }) }) }) }) })
+    }) }) }) }) }) }) }) }) })
 
     it('should fail to create a stake as owner', function(done) {
         var amount = 500

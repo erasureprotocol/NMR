@@ -101,10 +101,6 @@ contract NumeraireDelegate is StoppableShareable, NumeraireShared {
 
         require(stake.confidence == 0 || stake.confidence <= _confidence);
 
-        if (stake.amount <= 0) {
-            round.stakeAddresses.push(_staker);
-        }
-
         // Keep these two lines together so that the Solidity optimizer can
         // merge them into a single SSTORE.
         stake.amount = shrink128(safeAdd(stake.amount, _value));

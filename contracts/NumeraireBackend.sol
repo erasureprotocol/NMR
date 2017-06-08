@@ -114,9 +114,9 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
         return (tournament.creationTime, tournament.roundIDs);
     }
 
-    function getRound(uint256 _tournamentID, uint256 _roundID) constant returns (uint256, uint256, uint256, address[]) {
+    function getRound(uint256 _tournamentID, uint256 _roundID) constant returns (uint256, uint256, uint256) {
         var round = tournaments[_tournamentID].rounds[_roundID];
-        return (round.creationTime, round.endTime, round.resolutionTime, round.stakeAddresses);
+        return (round.creationTime, round.endTime, round.resolutionTime);
     }
 
     function getStake(uint256 _tournamentID, uint256 _roundID, address _staker) constant returns (uint256, uint256, bool, bool) {
