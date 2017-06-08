@@ -63,20 +63,20 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
         return delegateContract.delegatecall(bytes4(sha3("mint(uint256)")), _value);
     }
 
-    function stake(uint256 _value, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) stopInEmergency returns (bool ok) {
-        return delegateContract.delegatecall(bytes4(sha3("stake(uint256,uint256,uint256,uint256)")), _value, _tournamentID, _roundID, _confidence);
+    function stake(uint256 _value, bytes32 _tag, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) stopInEmergency returns (bool ok) {
+        return delegateContract.delegatecall(bytes4(sha3("stake(uint256,bytes32,uint256,uint256,uint256)")), _value, _tag, _tournamentID, _roundID, _confidence);
     }
 
-    function stakeOnBehalf(address _staker, uint256 _value, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) stopInEmergency onlyPayloadSize(5) returns (bool ok) {
-        return delegateContract.delegatecall(bytes4(sha3("stakeOnBehalf(address,uint256,uint256,uint256,uint256)")), _staker, _value, _tournamentID, _roundID, _confidence);
+    function stakeOnBehalf(address _staker, uint256 _value, bytes32 _tag, uint256 _tournamentID, uint256 _roundID, uint256 _confidence) stopInEmergency onlyPayloadSize(6) returns (bool ok) {
+        return delegateContract.delegatecall(bytes4(sha3("stakeOnBehalf(address,uint256,bytes32,uint256,uint256,uint256)")), _staker, _value, _tag, _tournamentID, _roundID, _confidence);
     }
 
-    function releaseStake(address _staker, uint256 _etherValue, uint256 _tournamentID, uint256 _roundID, bool _successful) stopInEmergency onlyPayloadSize(5) returns (bool ok) {
-        return delegateContract.delegatecall(bytes4(sha3("releaseStake(address,uint256,uint256,uint256,bool)")), _staker, _etherValue, _tournamentID, _roundID, _successful);
+    function releaseStake(address _staker, bytes32 _tag, uint256 _etherValue, uint256 _tournamentID, uint256 _roundID, bool _successful) stopInEmergency onlyPayloadSize(6) returns (bool ok) {
+        return delegateContract.delegatecall(bytes4(sha3("releaseStake(address,bytes32,uint256,uint256,uint256,bool)")), _staker, _tag, _etherValue, _tournamentID, _roundID, _successful);
     }
 
-    function destroyStake(address _staker, uint256 _tournamentID, uint256 _roundID) stopInEmergency onlyPayloadSize(3) returns (bool ok) {
-        return delegateContract.delegatecall(bytes4(sha3("destroyStake(address,uint256,uint256)")), _staker, _tournamentID, _roundID);
+    function destroyStake(address _staker, bytes32 _tag, uint256 _tournamentID, uint256 _roundID) stopInEmergency onlyPayloadSize(4) returns (bool ok) {
+        return delegateContract.delegatecall(bytes4(sha3("destroyStake(address,bytes32,uint256,uint256)")), _staker, _tag, _tournamentID, _roundID);
     }
 
     function numeraiTransfer(address _to, uint256 _value) onlyPayloadSize(2) returns(bool ok) {
@@ -119,8 +119,8 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
         return (round.creationTime, round.endTime, round.resolutionTime);
     }
 
-    function getStake(uint256 _tournamentID, uint256 _roundID, address _staker) constant returns (uint256, uint256, bool, bool) {
-        var stake = tournaments[_tournamentID].rounds[_roundID].stakes[_staker];
+    function getStake(uint256 _tournamentID, uint256 _roundID, address _staker, bytes32 _tag) constant returns (uint256, uint256, bool, bool) {
+        var stake = tournaments[_tournamentID].rounds[_roundID].stakes[_staker][_tag];
         return (stake.confidence, stake.amount, stake.successful, stake.resolved);
     }
 

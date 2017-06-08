@@ -59,6 +59,8 @@ var nmr_per_week = new Big(96153846153846100000000).add(53846153)
 var realTournament = 5
 var realRound = 55
 var realRound2 = 555
+var username = "daenris"
+var username2 = "xirax"
 
 var multiSigAddresses = ['0x54fd80d6ae7584d8e9a19fe1df43f04e5282cc43', '0xa6d135de4acf44f34e2e14a4ee619ce0a99d1e08']
 var Numeraire = artifacts.require("./NumeraireBackend.sol")
@@ -371,8 +373,8 @@ contract('Numeraire', function(accounts) {
         instance.numeraiTransfer(user, amount, {from: multiSigAddresses[0]}).then(() => {
         instance.balanceOf(user).then(startingBalance => {
             assert(startingBalance.gte(amount))
-        instance.stake(amount, realTournament, realRound, confidence, {from: user}).then(() => {
-        instance.getStake(realTournament, realRound, user).then(stake => {
+        instance.stake(amount, username, realTournament, realRound, confidence, {from: user}).then(() => {
+        instance.getStake(realTournament, realRound, user, username).then(stake => {
             assert.equal(stake[0].toNumber(), 8)
             assert.equal(stake[1].toNumber(), amount)
             assert.equal(stake[2], false)
@@ -384,6 +386,46 @@ contract('Numeraire', function(accounts) {
         done()
     }) }) }) }) }) }) }) }) })
 
+    it('should create a second stake on the same username', function(done) {
+        var amount = 500
+        var confidence = 10
+        var user = accounts[2]
+        Numeraire.deployed().then(instance => {
+        instance.numeraiTransfer(user, amount, {from: accounts[0]}).then(() => {
+        instance.numeraiTransfer(user, amount, {from: multiSigAddresses[0]}).then(() => {
+        instance.balanceOf(user).then(startingBalance => {
+            assert(startingBalance.gte(amount))
+        instance.stake(amount, username, realTournament, realRound, confidence, {from: user}).then(() => {
+        instance.getStake(realTournament, realRound, user, username).then(stake => {
+            assert.equal(stake[0].toNumber(), 10)
+            assert.equal(stake[1].toNumber(), 2*amount)
+            assert.equal(stake[2], false)
+            assert.equal(stake[3], false)
+        instance.balanceOf(user).then(endingBalance => {
+            assert(startingBalance.minus(amount).equals(endingBalance))
+        done()
+    }) }) }) }) }) }) }) })
+
+    it('should create a different stake with a different username', function(done) {
+        var amount = 500
+        var confidence = 8
+        var user = accounts[2]
+        Numeraire.deployed().then(instance => {
+        instance.numeraiTransfer(user, amount, {from: accounts[0]}).then(() => {
+        instance.numeraiTransfer(user, amount, {from: multiSigAddresses[0]}).then(() => {
+        instance.balanceOf(user).then(startingBalance => {
+            assert(startingBalance.gte(amount))
+        instance.stake(amount, username2, realTournament, realRound, confidence, {from: user}).then(() => {
+        instance.getStake(realTournament, realRound, user, username2).then(stake => {
+            assert.equal(stake[0].toNumber(), 8)
+            assert.equal(stake[1].toNumber(), amount)
+            assert.equal(stake[2], false)
+            assert.equal(stake[3], false)
+        instance.balanceOf(user).then(endingBalance => {
+            assert(startingBalance.minus(amount).equals(endingBalance))
+        done()
+    }) }) }) }) }) }) }) })
+
     it('should fail to create a stake as owner', function(done) {
         var amount = 500
         var user = accounts[0]
@@ -392,7 +434,7 @@ contract('Numeraire', function(accounts) {
         instance.numeraiTransfer(user, amount, {from: multiSigAddresses[0]}).then(() => {
         instance.balanceOf(user).then(startingBalance => {
             assert(startingBalance.gte(amount))
-        assertThrows(instance.stake, [amount, realTournament, realRound, 8, {from: user}]).then(() => {
+        assertThrows(instance.stake, [amount, username, realTournament, realRound, 8, {from: user}]).then(() => {
         done()
     }) }) }) }) }) })
 
@@ -400,7 +442,7 @@ contract('Numeraire', function(accounts) {
         var user = accounts[2]
         Numeraire.deployed().then(instance => {
         instance.balanceOf(user).then(startingBalance => {
-        assertThrows(instance.stake, [startingBalance.plus(1), realTournament, realRound, 8, {from: user}]).then(() => {
+        assertThrows(instance.stake, [startingBalance.plus(1), username, realTournament, realRound, 8, {from: user}]).then(() => {
         done()
     }) }) }) })
 
@@ -414,7 +456,7 @@ contract('Numeraire', function(accounts) {
             assert(startingBalance.gte(amount))
         instance.getTournament(realTournament+1).then(tournament => {
             assert.equal(tournament[0].toNumber(), 0)
-        assertThrows(instance.stake, [amount, realTournament+1, realRound, 8, {from: user}]).then(() => {
+        assertThrows(instance.stake, [amount, username, realTournament+1, realRound, 8, {from: user}]).then(() => {
         done()
     }) }) }) }) }) }) })
 
@@ -430,7 +472,7 @@ contract('Numeraire', function(accounts) {
             assert.isAbove(tournament[0].toNumber(), 0)
         instance.getRound(realTournament, realRound+1).then(round => {
             assert.equal(round[0].toNumber(), 0)
-        assertThrows(instance.stake, [amount, realTournament, realRound+1, 8, {from: user}]).then(() => {
+        assertThrows(instance.stake, [amount, username, realTournament, realRound+1, 8, {from: user}]).then(() => {
         done()
     }) }) }) }) }) }) }) })
 
@@ -438,7 +480,7 @@ contract('Numeraire', function(accounts) {
         var amount = 500
         var user = accounts[2]
         Numeraire.deployed().then(instance => {
-        assertThrows(instance.stake, [0, realTournament, realRound, 8, {from: user}]).then(() => {
+        assertThrows(instance.stake, [0, username, realTournament, realRound, 8, {from: user}]).then(() => {
         done()
     }) }) })
 
@@ -453,7 +495,7 @@ contract('Numeraire', function(accounts) {
             var block = web3.eth.getBlock("latest")
             var resolutionTime = block.timestamp + (4 * 7 * 24 * 60 * 60)
         instance.createRound(realTournament, realRound2, block.timestamp, resolutionTime).then(() => {
-        assertThrows(instance.stake, [amount, realTournament, realRound2, 8, {from: user}]).then(() => {
+        assertThrows(instance.stake, [amount, username, realTournament, realRound2, 8, {from: user}]).then(() => {
         done()
     }) }) }) }) }) }) })
 
@@ -464,9 +506,9 @@ contract('Numeraire', function(accounts) {
         Numeraire.deployed().then(function(instance) {
         instance.balanceOf.call(numerai_hot_wallet).then((balance) => {
         instance.transfer(user_account, amount, {from: numerai_hot_wallet}).then(function() {
-        instance.stakeOnBehalf(user_account, amount, realTournament, realRound, 5, {from: accounts[0]}).then(function(tx) {
+        instance.stakeOnBehalf(user_account, amount, username, realTournament, realRound, 5, {from: accounts[0]}).then(function(tx) {
             var block = web3.eth.getBlock(tx.receipt.blockNumber)
-        instance.getStake.call(realTournament, realRound, user_account, block.timestamp, 0).then(function(stake) {
+        instance.getStake(realTournament, realRound, user_account, username).then(function(stake) {
             assert.equal(stake[0].toNumber(), 5)
             assert.equal(stake[1].toNumber(), amount)
             assert.equal(stake[2], false)
@@ -483,7 +525,7 @@ contract('Numeraire', function(accounts) {
         Numeraire.deployed().then(function(instance) {
         instance.balanceOf.call(numerai_hot_wallet).then((balance) => {
         instance.transfer(user_account, amount, {from: numerai_hot_wallet}).then(function() {
-        assertThrows(instance.stakeOnBehalf, [user_account, amount, realTournament, realRound, 5, {from: accounts[0]}]).then(function(tx) {
+        assertThrows(instance.stakeOnBehalf, [user_account, amount, username, realTournament, realRound, 5, {from: accounts[0]}]).then(function(tx) {
         done()
     }) }) }) }) })
 
@@ -592,7 +634,7 @@ contract('Numeraire', function(accounts) {
             stakeSnapshot = snapshot['result']
         Numeraire.deployed().then(instance => {
         web3.evm.increaseTime(4 * 7 * 24 * 60 * 60 - 60).then(function() { // 1 minute before resolutionTime
-        assertThrows(instance.releaseStake, [user, 0, realTournament, realRound, true, {from: accounts[0]}]).then(() => {
+        assertThrows(instance.releaseStake, [user, username, 0, realTournament, realRound, true, {from: accounts[0]}]).then(() => {
         done()
     }) }) }) }) }) })
 
@@ -605,7 +647,7 @@ contract('Numeraire', function(accounts) {
         rpc('evm_snapshot').then(snapshot => {
             stakeSnapshot = snapshot['result']
         Numeraire.deployed().then(instance => {
-        assertThrows(instance.destroyStake, [user, realTournament, realRound, {from: accounts[0]}]).then(() => {
+        assertThrows(instance.destroyStake, [user, username, realTournament, realRound, {from: accounts[0]}]).then(() => {
         done()
     }) }) }) }) })
 
@@ -619,10 +661,10 @@ contract('Numeraire', function(accounts) {
         Numeraire.deployed().then(instance => {
         instance.balanceOf(user).then(startingBalance => {
         web3.evm.increaseTime(4 * 7 * 24 * 60 * 60).then(function() {
-        instance.releaseStake(user, 0, realTournament, realRound, true, {from: accounts[0]}).then(() => {
+        instance.releaseStake(user, username, 0, realTournament, realRound, true, {from: accounts[0]}).then(() => {
         instance.balanceOf(user).then(endingBalance => {
             assert(endingBalance.equals(startingBalance.plus(amount)))
-        instance.getStake(realTournament, realRound, user).then(stake => {
+        instance.getStake(realTournament, realRound, user, username).then(stake => {
             assert.equal(stake[0], confidence)
             assert.equal(stake[1], 0)
             assert.equal(stake[2], true)
@@ -643,11 +685,11 @@ contract('Numeraire', function(accounts) {
         web3.evm.increaseTime(4 * 7 * 24 * 60 * 60).then(function() {
         instance.balanceOf(user).then(startingBalance => {
             var startingEther = web3.eth.getBalance(user)
-        instance.releaseStake(user, etherAmount, realTournament, realRound, true, {from: multiSigAddresses[0]}).then(() => {
+        instance.releaseStake(user, username, etherAmount, realTournament, realRound, true, {from: multiSigAddresses[0]}).then(() => {
             assert(web3.eth.getBalance(user).equals(startingEther.plus(etherAmount)))
         instance.balanceOf(user).then(endingBalance => {
             assert(endingBalance.equals(startingBalance.plus(amount)))
-        instance.getStake(realTournament, realRound, user).then(stake => {
+        instance.getStake(realTournament, realRound, user, username).then(stake => {
             assert.equal(stake[0], confidence)
             assert.equal(stake[1], 0)
             assert.equal(stake[2], true)
@@ -660,16 +702,16 @@ contract('Numeraire', function(accounts) {
         var confidence = 8
         var user = accounts[2]
         Numeraire.deployed().then(instance => {
-        instance.getStake(realTournament, realRound, user).then(stake => {
+        instance.getStake(realTournament, realRound, user, username).then(stake => {
             assert.equal(stake[0], confidence)
             assert.equal(stake[1], 0)
             assert.equal(stake[2], true)
             assert.equal(stake[3], true)
-        assertThrows(instance.releaseStake, [user, 0, realTournament, realRound, true, {from: accounts[0]}]).then(() => {
+        assertThrows(instance.releaseStake, [user, username, 0, realTournament, realRound, true, {from: accounts[0]}]).then(() => {
         done()
     }) }) }) })
 
-    it('should fail to release a non-existing stake', function(done) {
+    it('should fail to release a stake from wrong address', function(done) {
         var amount = 500
         var confidence = 8
         var user = accounts[2]
@@ -678,7 +720,20 @@ contract('Numeraire', function(accounts) {
             stakeSnapshot = snapshot['result']
         Numeraire.deployed().then(instance => {
         web3.evm.increaseTime(4 * 7 * 24 * 60 * 60).then(function() {
-        assertThrows(instance.releaseStake, [accounts[5], 0, realTournament, realRound, true, {from: accounts[0]}]).then(() => {
+        assertThrows(instance.releaseStake, [accounts[5], username, 0, realTournament, realRound, true, {from: accounts[0]}]).then(() => {
+        done()
+    }) }) }) }) }) })
+
+    it('should fail to release a stake with the wrong username', function(done) {
+        var amount = 500
+        var confidence = 8
+        var user = accounts[2]
+        rpc('evm_revert', [stakeSnapshot]).then(() => {
+        rpc('evm_snapshot').then(snapshot => {
+            stakeSnapshot = snapshot['result']
+        Numeraire.deployed().then(instance => {
+        web3.evm.increaseTime(4 * 7 * 24 * 60 * 60).then(function() {
+        assertThrows(instance.releaseStake, [user, username+"x", 0, realTournament, realRound, true, {from: accounts[0]}]).then(() => {
         done()
     }) }) }) }) }) })
 
@@ -693,12 +748,12 @@ contract('Numeraire', function(accounts) {
         instance.balanceOf(user).then(startingBalance => {
         instance.totalSupply().then(startingSupply => {
         web3.evm.increaseTime(4 * 7 * 24 * 60 * 60).then(function() {
-        instance.destroyStake(user, realTournament, realRound, {from: accounts[0]}).then(() => {
+        instance.destroyStake(user, username, realTournament, realRound, {from: accounts[0]}).then(() => {
         instance.balanceOf(user).then(endingBalance => {
             assert(endingBalance.equals(startingBalance))
         instance.totalSupply().then(endingSupply => {
             assert(endingSupply.equals(startingSupply.minus(amount)))
-        instance.getStake(realTournament, realRound, user).then(stake => {
+        instance.getStake(realTournament, realRound, user, username).then(stake => {
             assert.equal(stake[0], confidence)
             assert.equal(stake[1], 0)
             assert.equal(stake[2], false)
@@ -711,16 +766,16 @@ contract('Numeraire', function(accounts) {
         var confidence = 8
         var user = accounts[2]
         Numeraire.deployed().then(instance => {
-        instance.getStake(realTournament, realRound, user).then(stake => {
+        instance.getStake(realTournament, realRound, user, username).then(stake => {
             assert.equal(stake[0], confidence)
             assert.equal(stake[1], 0)
             assert.equal(stake[2], false)
             assert.equal(stake[3], true)
-        assertThrows(instance.destroyStake, [user, realTournament, realRound, {from: accounts[0]}]).then(() => {
+        assertThrows(instance.destroyStake, [user, username, realTournament, realRound, {from: accounts[0]}]).then(() => {
         done()
     }) }) }) })
 
-    it('should fail to destroy a non-existing stake', function(done) {
+    it('should fail to destroy a stake from wrong address', function(done) {
         var amount = 500
         var confidence = 8
         var user = accounts[2]
@@ -728,18 +783,23 @@ contract('Numeraire', function(accounts) {
         rpc('evm_snapshot').then(snapshot => {
             stakeSnapshot = snapshot['result']
         Numeraire.deployed().then(instance => {
-        instance.balanceOf(user).then(startingBalance => {
         web3.evm.increaseTime(4 * 7 * 24 * 60 * 60).then(function() {
-        instance.destroyStake(user, realTournament, realRound, {from: accounts[0]}).then(() => {
-        instance.balanceOf(user).then(endingBalance => {
-            assert(endingBalance.equals(startingBalance))
-        instance.getStake(realTournament, realRound, user).then(stake => {
-            assert.equal(stake[0], confidence)
-            assert.equal(stake[1], 0)
-            assert.equal(stake[2], false)
-            assert.equal(stake[3], true)
+        assertThrows(instance.destroyStake, [accounts[5], username, realTournament, realRound, {from: accounts[0]}]).then(() => {
         done()
-    }) }) }) }) }) }) }) }) })
+    }) }) }) }) }) })
+
+    it('should fail to destroy a stake with wrong username', function(done) {
+        var amount = 500
+        var confidence = 8
+        var user = accounts[2]
+        rpc('evm_revert', [stakeSnapshot]).then(() => {
+        rpc('evm_snapshot').then(snapshot => {
+            stakeSnapshot = snapshot['result']
+        Numeraire.deployed().then(instance => {
+        web3.evm.increaseTime(4 * 7 * 24 * 60 * 60).then(function() {
+        assertThrows(instance.destroyStake, [user, username+"x", realTournament, realRound, {from: accounts[0]}]).then(() => {
+        done()
+    }) }) }) }) }) })
 
     it('should approve', function(done) {
         var user = accounts[2]
