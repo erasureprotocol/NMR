@@ -99,21 +99,17 @@ contract NumeraireDelegate is StoppableShareable, NumeraireShared {
         require(round.endTime > block.timestamp); // Can't stake after round ends
         require(_value > 0); // Can't stake zero NMR
 
-        if (stake.confidence == 0) {
-            stake.confidence = _confidence;
-        }
-        else if (stake.confidence <= _confidence) {
-            stake.confidence = _confidence;
-        }
-        else {
-            revert(); // Confidence can only increased or set to the same, non-zero number
-        }
+        require(stake.confidence == 0 || stake.confidence <= _confidence);
 
         if (stake.amount <= 0) {
             round.stakeAddresses.push(_staker);
         }
 
-        stake.amount = safeAdd(stake.amount, _value);
+        // Keep these two lines together so that the Solidity optimizer can
+        // merge them into a single SSTORE.
+        stake.amount = shrink128(safeAdd(stake.amount, _value));
+        stake.confidence = shrink128(_confidence);
+
         balanceOf[_staker] = safeSubtract(balanceOf[_staker], _value);
 
         // Notify anyone listening.

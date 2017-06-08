@@ -38,9 +38,13 @@ contract NumeraireShared is Safe {
         mapping (address => Stake) stakes;  // address of staker
     }
 
+    // The order is important here because of its packing characteristics.
+    // Particularly, `amount` and `confidence` are in the *same* word, so
+    // Solidity can update both at the same time (if the optimizer can figure
+    // out that you're updating both).  This makes `stake()` cheap.
     struct Stake {
-        uint256 amount; // Once the stake is resolved, this becomes 0
-        uint256 confidence;
+        uint128 amount; // Once the stake is resolved, this becomes 0
+        uint128 confidence;
         bool successful;
         bool resolved;
     }

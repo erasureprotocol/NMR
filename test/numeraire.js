@@ -75,7 +75,7 @@ function almostEqual(one, two) {
 contract('Numeraire', function(accounts) {
 
     before(function(done) {
-        var etherAmount = new Big('1000000000000000000')
+        var etherAmount = new Big('10000000000000000000')
         web3.eth.sendTransaction({from: accounts[0], to: multiSigAddresses[0], value: etherAmount, gasLimit: 21000, gasPrice: gasPrice})
         web3.eth.sendTransaction({from: accounts[5], to: multiSigAddresses[1], value: etherAmount, gasLimit: 21000, gasPrice: gasPrice})
 
