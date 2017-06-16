@@ -88,25 +88,11 @@ contract NumeraireBackend is StoppableShareable, NumeraireShared {
     }
 
     function createTournament(uint256 _tournamentID) returns (bool ok) {
-        var tournament = tournaments[_tournamentID];
-        require(tournament.creationTime == 0); // Already created
-        tournament.creationTime = block.timestamp;
-        TournamentCreated(_tournamentID);
-        return true;
+        return delegateContract.delegatecall(bytes4(sha3("createTournament(uint256)")), _tournamentID);
     }
 
     function createRound(uint256 _tournamentID, uint256 _roundID, uint256 _endTime, uint256 _resolutionTime) returns (bool ok) {
-        var tournament = tournaments[_tournamentID];
-        var round = tournament.rounds[_roundID];
-        require(_endTime <= _resolutionTime);
-        require(tournament.creationTime > 0);
-        require(round.creationTime == 0);
-        tournament.roundIDs.push(_roundID);
-        round.creationTime = block.timestamp;
-        round.endTime = _endTime;
-        round.resolutionTime = _resolutionTime;
-        RoundCreated(_tournamentID, _roundID, round.endTime, round.resolutionTime);
-        return true;
+        return delegateContract.delegatecall(bytes4(sha3("createRound(uint256,uint256,uint256,uint256)")), _tournamentID, _roundID, _endTime, _resolutionTime);
     }
 
     function getTournament(uint256 _tournamentID) constant returns (uint256, uint256[]) {
