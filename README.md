@@ -11,7 +11,7 @@ Security Audit: Peter Vessenes and Dennis Peterson at [New Alchemy](https://newa
 - Should be able to single-sig pause the contract and multi-sig unpause the contract
 - All state-changing functions should be disabled in the paused state unless it requires multi-sig
 - Only Numerai can release stakes, destroy stakes, and mint
-- Trainsfers from Numerai's store of NMR require multi-sig
+- Transfers from Numerai's store of NMR require multi-sig
 - All NMR initially minted are sent to Numerai's multi-sig
 - The contract should be upgradable so that the maps of balances, allowances, and stakes remain unchanged but the functions called for minting, staking, releasing stakes, and destroying stakes are changed.
 - It should be possible to disable upgradability forever
@@ -62,7 +62,7 @@ The following are functions that may be useful for a user to call.
 
 Transfers NMR to another user.  This function is part of the ERC20 standard.
 
-- `_to` is the destinationn address.
+- `_to` is the destination address.
 - `_value` is the amount to be transferred.
 
 #### `stake(uint256 _value, bytes32 _tag, uint256 _tournamentID, uint256 _roundID, uint256 _confidence)`
@@ -279,7 +279,7 @@ Emitted when one of the contract owners confirms a multi-sig transaction.
 Emitted when one of the contract owners revokes a previous confirmation of a
 multi-sig transaction.
 
-### Owner operationns
+### Owner operations
 
 The following are functions that may only be called by one or more of the
 contract owners.
