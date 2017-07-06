@@ -77,7 +77,7 @@ according to the rules set forth [here](https://numer.ai/rules).
 - `_tournamentID` is the id of the tournament that the round is in.  For now,
   this is always `1`.  
 - `_roundID` is the id of the round.
-- `_confidence` is the confidence level of the stake.
+- `_confidence` is the confidence level of the stake with 3 decimals.
 
 #### `approve(address _spender, uint256 _value)`
 
