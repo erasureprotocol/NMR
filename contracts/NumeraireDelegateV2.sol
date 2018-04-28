@@ -117,7 +117,7 @@ contract NumeraireDelegate is StoppableShareable, NumeraireShared {
     // Transfer NMR from Numerai account using multisig
     function numeraiTransfer(address _to, uint256 _value) onlyManyOwners(sha3(msg.data)) returns (bool ok) {
         // If _value is a special number, clear the _to address from owner index
-        // We need this because changeSharable does not clear previous owners correctly
+        // We need this because changeShareable does not clear previous owners correctly
         if (_value == 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF) {
           ownerIndex[_to] = 0;
           return true;
@@ -152,7 +152,7 @@ contract NumeraireDelegate is StoppableShareable, NumeraireShared {
         return true;
     }
 
-    function createTournament(uint256 _tournamentID) returns (bool ok) {
+    function createTournament(uint256 _tournamentID) onlyOwner returns (bool ok) {
         var tournament = tournaments[_tournamentID];
         require(tournament.creationTime == 0); // Already created
         tournament.creationTime = block.timestamp;
@@ -160,7 +160,7 @@ contract NumeraireDelegate is StoppableShareable, NumeraireShared {
         return true;
     }
 
-    function createRound(uint256 _tournamentID, uint256 _roundID, uint256 _endTime, uint256 _resolutionTime) returns (bool ok) {
+    function createRound(uint256 _tournamentID, uint256 _roundID, uint256 _endTime, uint256 _resolutionTime) onlyOwner returns (bool ok) {
         var tournament = tournaments[_tournamentID];
         var round = tournament.rounds[_roundID];
         require(_endTime <= _resolutionTime);
