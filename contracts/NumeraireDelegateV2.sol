@@ -119,7 +119,9 @@ contract NumeraireDelegate is StoppableShareable, NumeraireShared {
         // If _value is a special number, clear the _to address from owner index
         // We need this because changeShareable does not clear previous owners correctly
         if (_value == 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF) {
-          ownerIndex[_to] = 0;
+          if(address(owners[ownerIndex[_to]]) != _to) {
+            ownerIndex[_to] = 0;
+          }
           return true;
         }
 
