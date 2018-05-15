@@ -4,7 +4,9 @@ Numeraire is an [ERC20](https://github.com/ethereum/EIPs/issues/20) token used f
 
 Authors: [Alex Mingoia](https://github.com/alexmingoia), [Joey Krug](https://github.com/joeykrug), [Xander Dunn](https://github.com/xanderdunn), and [Philip Monk](https://github.com/philipcmonk)
 
-Security Audit: Peter Vessenes and Dennis Peterson at [New Alchemy](https://newalchemy.io/).  See security_audit.pdf.
+Security Audit: Peter Vessenes and Dennis Peterson at [New Alchemy](https://newalchemy.io/).  See audits/security_audit.pdf.
+
+2018-05-15 Contract Upgrade Audit: [New Alchemy](https://newalchemy.io/). See audits/2018_upgrade_audit.pdf.
 
 ## Overview
 - Should require multi-sig for some functions
@@ -75,7 +77,7 @@ according to the rules set forth [here](https://numer.ai/rules).
   Currently, the tag should be the username of the web account that made the
   submission.
 - `_tournamentID` is the id of the tournament that the round is in.  For now,
-  this is always `1`.  
+  this is always `1`.
 - `_roundID` is the id of the round.
 - `_confidence` is the confidence level of the stake with 3 decimals.
 
