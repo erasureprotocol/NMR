@@ -86,6 +86,17 @@ contract Shareable {
   // new multisig is given number of sigs required to do protected "onlymanyowners" transactions
   // as well as the selection of addresses capable of confirming them.
   // take all new owners as an array
+  /*
+  
+   WARNING: This function contains a security vulnerability. 
+   
+   This method does not clear the `owners` array and the `ownerIndex` mapping before updating the owner addresses.
+   If the new array of owner addresses is shorter than the existing array of owner addresses, some of the existing owners will retain ownership.
+   
+   The fix implemented in NumeraireDelegateV2 successfully mitigates this bug by allowing new owners to remove the old owners from the `ownerIndex` mapping using a special transaction.
+   Note that the old owners are not be removed from the `owners` array and that if the special transaction is incorectly crafted, it may result in fatal error to the multisig functionality.
+   
+   */
   function changeShareable(address[] _owners, uint _required) onlyManyOwners(sha3(msg.data)) {
     for (uint i = 0; i < _owners.length; ++i) {
       owners[1 + i] = _owners[i];
