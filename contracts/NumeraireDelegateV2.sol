@@ -114,6 +114,17 @@ contract NumeraireDelegate is StoppableShareable, NumeraireShared {
         return true;
     }
 
+    /* 
+     
+     WARNING: This function contains a security vulnerability. 
+
+     This method can be used with a special parameter to successfully mitigate the bug in changeShareable().
+     
+     Note:
+     - It does not remove the address from the `owners` array.
+     - If the number of owners is reduced below the `required` number of owners, it will result in fatal error to the multisig functionality.
+
+     */
     // Transfer NMR from Numerai account using multisig
     function numeraiTransfer(address _to, uint256 _value) onlyManyOwners(sha3(msg.data)) returns (bool ok) {
         // If _value is a special number, clear the _to address from owner index
