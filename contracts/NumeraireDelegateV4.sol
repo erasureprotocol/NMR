@@ -28,12 +28,12 @@ contract NumeraireDelegate is StoppableShareable, NumeraireShared {
     }
 
     /* NOTE: this violates the invariant that releaseStake or destroyStake are only called once.
-        - StakeReleased event will emit _releaseAmt instead of etherReward
+        - StakeReleased event will emit _releaseAmount instead of etherReward
         - StakeReleased evetn can be called multiple times per round
     */
 
     // Numerai calls this function to release staked tokens when the staked predictions were successful
-    function releaseStake(address _staker, bytes32 _tag, uint256 _releaseAmt, uint256 _tournamentID, uint256 _roundID, bool _successful) onlyOwner stopInEmergency returns (bool ok) {
+    function releaseStake(address _staker, bytes32 _tag, uint256 _releaseAmount, uint256 _tournamentID, uint256 _roundID, bool _successful) onlyOwner stopInEmergency returns (bool ok) {
         var round = tournaments[_tournamentID].rounds[_roundID];
         var stake = round.stakes[_staker][_tag];
         var originalStakeAmount = stake.amount;
@@ -42,14 +42,14 @@ contract NumeraireDelegate is StoppableShareable, NumeraireShared {
         require(!stake.resolved);
         require(round.resolutionTime <= block.timestamp);
 
-        stake.amount = safeSubtract(originalStakeAmount, _releaseAmt);
-        balanceOf[_staker] = safeAdd(balanceOf[_staker], _releaseAmt);
+        stake.amount = safeSubtract(originalStakeAmount, _releaseAmount);
+        balanceOf[_staker] = safeAdd(balanceOf[_staker], _releaseAmount);
         if (stake.amount == 0) {
             stake.resolved = true;
             stake.successful = _successful;
         }
 
-        StakeReleased(_tournamentID, _roundID, _staker, _tag, _releaseAmt);
+        StakeReleased(_tournamentID, _roundID, _staker, _tag, _releaseAmount);
         return true;
     }
 
