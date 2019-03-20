@@ -28,23 +28,25 @@ contract NumeraireDelegateV2 is StoppableShareable, NumeraireShared {
     }
 
     // Numerai calls this function to release staked tokens when the staked predictions were successful
-    function releaseStake(address _staker, bytes32 _tag, uint256 _burnAmt, uint256 _tournamentID, uint256 _roundID, bool _successful) onlyOwner stopInEmergency returns (bool ok) {
+    function releaseStake(address _staker, bytes32 _tag, uint256 _etherValue, uint256 _tournamentID, uint256 _roundID, bool _successful) onlyOwner stopInEmergency returns (bool ok) {
         var round = tournaments[_tournamentID].rounds[_roundID];
         var stake = round.stakes[_staker][_tag];
-        var originalStakeAmount = stake.amount;
+        uint256 burnAmt = _etherValue;
+        uint256 releaseAmt = safeSubtract(stake.amount, burnAmt);
+        assert(stake.amount = burnAmt + releaseAmt);
 
         require(stake.amount > 0);
         require(!stake.resolved);
         require(round.resolutionTime <= block.timestamp);
 
         stake.amount = 0;
-        balanceOf[_staker] = safeAdd(balanceOf[_staker], safeSubtract(originalStakeAmount, _burnAmt));
+        balanceOf[_staker] = safeAdd(balanceOf[_staker], releaseAmt);
         stake.resolved = true;
         stake.successful = _successful;
 
-        totalSupply = safeSubtract(totalSupply, _burnAmt);
+        totalSupply = safeSubtract(totalSupply, burnAmt);
 
-        StakeReleased(_tournamentID, _roundID, _staker, _tag, _burnAmt);
+        StakeReleased(_tournamentID, _roundID, _staker, _tag, burnAmt);
         return true;
     }
 
