@@ -45,8 +45,6 @@ contract NumeraireDelegateV2 is StoppableShareable, NumeraireShared {
         totalSupply = safeSubtract(totalSupply, _burnAmt);
 
         StakeReleased(_tournamentID, _roundID, _staker, _tag, _burnAmt);
-        StakeDestroyed(_tournamentID, _roundID, _staker, _tag);
-
         return true;
     }
 
