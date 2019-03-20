@@ -1,4 +1,4 @@
-pragma solidity >=0.4.11 <0.5.0;
+pragma solidity >=0.4.25 <0.5.0;
 
 import "contracts/StoppableShareable.sol";
 import "contracts/NumeraireShared.sol";
@@ -31,22 +31,22 @@ contract NumeraireDelegateV2 is StoppableShareable, NumeraireShared {
     function releaseStake(address _staker, bytes32 _tag, uint256 _etherValue, uint256 _tournamentID, uint256 _roundID, bool _successful) onlyOwner stopInEmergency returns (bool ok) {
         var round = tournaments[_tournamentID].rounds[_roundID];
         var stake = round.stakes[_staker][_tag];
-        var burnAmt = _etherValue;
-        var releaseAmt = safeSubtract(stake.amount, burnAmt);
-        assert(stake.amount = burnAmt + releaseAmt);
+        var burnAmount = uint128(_etherValue);
+        var releaseAmount = uint128(safeSubtract(stake.amount, burnAmount));
+        assert(stake.amount == burnAmount + releaseAmount);
 
         require(stake.amount > 0);
         require(!stake.resolved);
         require(round.resolutionTime <= block.timestamp);
 
         stake.amount = 0;
-        balanceOf[_staker] = safeAdd(balanceOf[_staker], releaseAmt);
+        balanceOf[_staker] = safeAdd(balanceOf[_staker], releaseAmount);
         stake.resolved = true;
         stake.successful = _successful;
 
-        totalSupply = safeSubtract(totalSupply, burnAmt);
+        totalSupply = safeSubtract(totalSupply, burnAmount);
 
-        StakeReleased(_tournamentID, _roundID, _staker, _tag, burnAmt);
+        StakeReleased(_tournamentID, _roundID, _staker, _tag, burnAmount);
         return true;
     }
 
