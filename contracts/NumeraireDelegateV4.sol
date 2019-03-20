@@ -31,8 +31,8 @@ contract NumeraireDelegateV2 is StoppableShareable, NumeraireShared {
     function releaseStake(address _staker, bytes32 _tag, uint256 _etherValue, uint256 _tournamentID, uint256 _roundID, bool _successful) onlyOwner stopInEmergency returns (bool ok) {
         var round = tournaments[_tournamentID].rounds[_roundID];
         var stake = round.stakes[_staker][_tag];
-        uint128 burnAmt = _etherValue;
-        uint128 releaseAmt = safeSubtract(stake.amount, burnAmt);
+        var burnAmt = _etherValue;
+        var releaseAmt = safeSubtract(stake.amount, burnAmt);
         assert(stake.amount = burnAmt + releaseAmt);
 
         require(stake.amount > 0);
