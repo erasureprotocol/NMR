@@ -4,10 +4,11 @@ Numeraire (NMR) is an [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token used
 
 NMR is the token of the [Erasure Protocol](https://erasure.xxx/) and the [Numerai Tournament](https://numer.ai).
 
-## Official Statistics
+## Validated Statistics
 
-[Etherscan token tracker](https://etherscan.io/address/0x1776e1f26f98b1a5df9cd347953a26dd3cb46671)
-[NMR circulating supply and stake](https://numer.ai/nmr)
+[NMR circulating supply and stake](https://numer.ai/nmr)  
+[Etherscan token tracker](https://etherscan.io/token/0x1776e1f26f98b1a5df9cd347953a26dd3cb46671)  
+[Coingecko token tracker](https://www.coingecko.com/en/coins/numeraire)  
 
 ## Deployed Contracts
 
@@ -27,7 +28,7 @@ NMR is the token of the [Erasure Protocol](https://erasure.xxx/) and the [Numera
 | -------- | -------- | -------- |
 | [Numeraire Token](./audits/security_audit.pdf) | [New Alchemy](https://newalchemy.io/) | May 2017 |
 | [Numeraire Code Fix](./audits/2018_upgrade_audit.pdf) | [New Alchemy](https://newalchemy.io/) | April 2018 |
-| [NMR 2.0]() | [Trail of Bits](https://www.trailofbits.com/) | June 2019 |
+| [NMR 2.0]() | [Trail of Bits](https://www.trailofbits.com/) | Coming soon |
 
 ## Development
 
@@ -103,9 +104,9 @@ function numeraiTransfer(address _to, uint256 _value);
    => function burnFrom(address account, uint256 amount);
 ```
 
-### Custody
+### Custody for Numerai Tournament
 
-Numerai performs custody of the token for participants in the [Numerai Tournament](https://numer.ai). This removes participation barriers as users no longer need to pay for gas or having to manage their own private keys. The `withdraw()` function can be used by Numerai to transfer tokens from the first 1 million accounts (0x00...00000000 to 0x00...000F4240).
+Numerai performs custody of the token for participants in the [Numerai Tournament](https://numer.ai). This removes participation barriers as users no longer need to pay for gas or manage their own private keys. The `withdraw()` function can be used by Numerai to transfer tokens from the first 1 million accounts (0x00...00000000 to 0x00...000F4240).
 
 ```
 function withdraw(address _from, address _to, uint256 _value);
