@@ -28,7 +28,7 @@ NMR is the token of the [Erasure Protocol](https://erasure.xxx/) and the [Numera
 | -------- | -------- | -------- |
 | [Numeraire Token](./audits/security_audit.pdf) | [New Alchemy](https://newalchemy.io/) | May 2017 |
 | [Numeraire Code Fix](./audits/2018_upgrade_audit.pdf) | [New Alchemy](https://newalchemy.io/) | April 2018 |
-| [NMR 2.0]() | [Trail of Bits](https://www.trailofbits.com/) | Coming soon |
+| [NMR 2.0](./audits/NMR2_audit.pdf) | [Trail of Bits](https://www.trailofbits.com/) | July 2019 |
 
 ## Development
 
