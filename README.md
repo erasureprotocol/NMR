@@ -1,39 +1,44 @@
-# Numeraire Ethereum Smart Contract
+# NMR Ethereum Smart Contract
 
 Numeraire (NMR) is an [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token used for staking and burning.
 
-NMR is the token of the [Erasure Protocol](https://erasure.xxx/) and the [Numerai Tournament](https://numer.ai).
+NMR is the native token of the [Erasure Protocol](https://erasure.world/).
 
-## Validated Statistics
+See [documentation](https://docs.erasure.world/) for more information.
 
-[NMR circulating supply and stake](https://numer.ai/nmr)  
+## Validated Metrics
+
+[NMR circulating supply](https://numer.ai/nmr/circulating_supply)  
 [Etherscan token tracker](https://etherscan.io/token/0x1776e1f26f98b1a5df9cd347953a26dd3cb46671)  
 [Coingecko token tracker](https://www.coingecko.com/en/coins/numeraire)  
+[DeFiPulse token tracker](https://defipulse.com/erasure)
 
 ## Deployed Contracts
 
-| Contract | Address |
-| -------- | -------- |
-| NumeraireBackend | [0x1776e1f26f98b1a5df9cd347953a26dd3cb46671](https://etherscan.io/address/0x1776e1f26f98b1a5df9cd347953a26dd3cb46671) |
+| Contract            | Address                                                                                                               |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| NumeraireBackend    | [0x1776e1f26f98b1a5df9cd347953a26dd3cb46671](https://etherscan.io/address/0x1776e1f26f98b1a5df9cd347953a26dd3cb46671) |
 | NumeraireDelegateV1 | [0xF32e4724946d4e288B3042d504919CE68C4Fda9c](https://etherscan.io/address/0xF32e4724946d4e288B3042d504919CE68C4Fda9c) |
 | NumeraireDelegateV2 | [0x3548718A49EE7cd348e50290D446D9F1A1f9C59E](https://etherscan.io/address/0x3548718A49EE7cd348e50290D446D9F1A1f9C59E) |
 | NumeraireDelegateV3 | [0x29F709e42C95C604BA76E73316d325077f8eB7b2](https://etherscan.io/address/0x29F709e42C95C604BA76E73316d325077f8eB7b2) |
-| UpgradeDelegate | [0x3361F79f0819fD5feaA37bea44C8a33d98b2A1cd](https://etherscan.io/address/0x3361F79f0819fD5feaA37bea44C8a33d98b2A1cd) |
-| Relay | [0xB17dF4a656505570aD994D023F632D48De04eDF2](https://etherscan.io/address/0xB17dF4a656505570aD994D023F632D48De04eDF2) |
-
+| UpgradeDelegate     | [0x3361F79f0819fD5feaA37bea44C8a33d98b2A1cd](https://etherscan.io/address/0x3361F79f0819fD5feaA37bea44C8a33d98b2A1cd) |
+| Relay               | [0xB17dF4a656505570aD994D023F632D48De04eDF2](https://etherscan.io/address/0xB17dF4a656505570aD994D023F632D48De04eDF2) |
 
 ## Security Audits
 
-| Audit | Provider | Date |
-| -------- | -------- | -------- |
-| [Numeraire Token](./audits/security_audit.pdf) | [New Alchemy](https://newalchemy.io/) | May 2017 |
-| [Numeraire Code Fix](./audits/2018_upgrade_audit.pdf) | [New Alchemy](https://newalchemy.io/) | April 2018 |
-| [NMR 2.0](./audits/NMR2_audit.pdf) | [Trail of Bits](https://www.trailofbits.com/) | July 2019 |
+| Audit                                           | Provider                                      | Date       |
+| ----------------------------------------------- | --------------------------------------------- | ---------- |
+| [NMR Token](./audits/security_audit.pdf)        | [New Alchemy](https://newalchemy.io/)         | May 2017   |
+| [NMR Code Fix](./audits/2018_upgrade_audit.pdf) | [New Alchemy](https://newalchemy.io/)         | April 2018 |
+| [NMR 2.0](./audits/NMR2_audit.pdf)              | [Trail of Bits](https://www.trailofbits.com/) | July 2019  |
 
-## Development
+## Whitepapers
 
-- Install dependencies: `yarn install`
-- Compile contracts: `yarn compile`
+| Project                                                                               | Authors                                                 | Date          |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------- |
+| [Numerai](./whitepapers/numerai-whitepaper-2017.pdf)                                  | Richard Craib, Geoffrey Bradway, Xander Dunn, Joey Krug | February 2017 |
+| [Erasure Quant](https://docs.erasure.world/erasure-quant-docs/erasure-quant-overview) | Richard Craib, James Geary, Jason Paryani               | August 2019   |
+| [Erasure Bay](https://docs.erasure.world/erasurebay-docs/bay-overview)                | Stephane Gosselin, Jonathan Sidego                      | March 2020    |
 
 ## Specification
 
@@ -54,7 +59,7 @@ event Approval(address indexed _owner, address indexed _spender, uint256 _value)
 
 Refer to [ERC-20 standard](https://eips.ethereum.org/EIPS/eip-20) for detailed specification.
 
-*Note:* NMR deviates from ERC-20 in the implementation of the `approve()` function to prevent the [ERC-20 approve race condition](https://docs.google.com/document/d/1YLPtQxZu1UAvO9cZ1O2RPXBbT0mooh4DYKjA_jp-RLM).
+_Note:_ NMR deviates from ERC-20 in the implementation of the `approve()` function to prevent the [ERC-20 approve race condition](https://docs.google.com/document/d/1YLPtQxZu1UAvO9cZ1O2RPXBbT0mooh4DYKjA_jp-RLM).
 
 The `approve()` function is limited to changing the allowance from zero or to zero.
 
@@ -73,9 +78,9 @@ value is what we expected.
 
 ### Burning
 
-The `mint()` and `numeraiTransfer()` functions have been repurposed from their initial use in order to support native token burns as implemented in OpenZeppelin's [ERC20Burnable](https://github.com/OpenZeppelin/openzeppelin-solidity/blob/master/contracts/token/ERC20/ERC20Burnable.sol).
+The `mint()` and `numeraiTransfer()` functions have been repurposed from their initial use in order to support native token burns as implemented in OpenZeppelin's [ERC20Burnable](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/ERC20Burnable.sol).
 
-*Note: The caller must check the return values of these functions as they return false on failure.*
+_Note: The caller must check the return values of these functions as they return false on failure._
 
 ```
 /**
