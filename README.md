@@ -6,6 +6,8 @@ NMR is the native token of the [Erasure Protocol](https://erasure.world/).
 
 See [documentation](https://docs.erasure.world/) for more information.
 
+Security Contact: security@numer.ai
+
 ## Validated Metrics
 
 [NMR circulating supply](https://numer.ai/nmr/circulating_supply)  
