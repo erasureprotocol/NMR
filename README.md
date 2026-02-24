@@ -127,3 +127,8 @@ All other contract methods belong to the following features which have been disa
 - Emergency Stops
 - Minting
 - Upgradeability
+
+# Known Addresses
+Aside from the contract addresses above, Numerai operates 2 publicly known addresses:
+- [The Numerai Treasury](https://etherscan.io/address/0xb1544c7f5d81e93a51a84382d08c6c2bd952e859) is a multisig wallet for cold-storage of out-of-circulation tokens.
+- [The Numerai Hot Wallet](https://etherscan.io/address/0x1105afaf3002a48a305afd631e3cb57277ceb0ea) is used to reward participants in the Numerai tournaments.
