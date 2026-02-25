@@ -80,7 +80,7 @@ value is what we expected.
 
 ### Burning
 
-The `mint()` and `numeraiTransfer()` functions have been repurposed from their initial use in order to support native token burns as implemented in OpenZeppelin's [ERC20Burnable](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/ERC20Burnable.sol).
+The `mint()` and `numeraiTransfer()` functions have been repurposed from their initial use in order to support native token burns as implemented in OpenZeppelin's [ERC20Burnable](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/ERC20Burnable.sol).
 
 _Note: The caller must check the return values of these functions as they return false on failure._
 
